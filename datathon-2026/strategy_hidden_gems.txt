@@ -1,0 +1,7 @@
+--- ĐỊNH HƯỚNG: HIDDEN GEMS (TIỀM ẨN - CẦN MARKETING) ---
+
+CATEGORY-SEGMENT                    | AVG LTV      | VOLUME     | PROFIT    
+--------------------------------------------------------------------------------
+Streetwear - Standard               | $38,437      | 45,060     | $26,372,737
+Outdoor - Premium                   | $40,895      | 126,052    | $24,328,590
+Casual - Activewear                 | $49,810      | 5,743      | $5,330,470

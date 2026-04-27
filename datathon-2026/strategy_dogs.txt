@@ -1,0 +1,5 @@
+--- ĐỊNH HƯỚNG: DOGS (KÉM HIỆU QUẢ - HẠN CHẾ R&D) ---
+
+CATEGORY-SEGMENT                    | AVG LTV      | VOLUME     | PROFIT    
+--------------------------------------------------------------------------------
+Casual - All-weather                | $36,785      | 91,841     | $25,553,692
