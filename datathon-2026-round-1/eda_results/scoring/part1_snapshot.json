@@ -1,0 +1,68 @@
+{
+  "datasets": {
+    "sales": {
+      "rows": 3833,
+      "cols": 3
+    },
+    "orders": {
+      "rows": 646945,
+      "cols": 8
+    },
+    "order_items": {
+      "rows": 714669,
+      "cols": 7
+    },
+    "payments": {
+      "rows": 646945,
+      "cols": 4
+    },
+    "shipments": {
+      "rows": 566067,
+      "cols": 4
+    },
+    "returns": {
+      "rows": 39939,
+      "cols": 7
+    },
+    "reviews": {
+      "rows": 113551,
+      "cols": 7
+    },
+    "customers": {
+      "rows": 121930,
+      "cols": 7
+    },
+    "products": {
+      "rows": 2412,
+      "cols": 9
+    },
+    "promotions": {
+      "rows": 50,
+      "cols": 10
+    },
+    "geography": {
+      "rows": 39948,
+      "cols": 4
+    },
+    "inventory": {
+      "rows": 60247,
+      "cols": 17
+    },
+    "web_traffic": {
+      "rows": 3652,
+      "cols": 7
+    }
+  },
+  "mcq_answers": {
+    "Q1": 178.0,
+    "Q2": "Standard",
+    "Q3": "wrong_size",
+    "Q4": "email_campaign",
+    "Q5": 38.66,
+    "Q6": "55+",
+    "Q7": "East",
+    "Q8": "credit_card",
+    "Q9": "S",
+    "Q10": 6
+  }
+}

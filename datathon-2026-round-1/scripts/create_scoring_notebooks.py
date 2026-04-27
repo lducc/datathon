@@ -1,0 +1,690 @@
+"""Create scoring-oriented notebooks for Part 1 (MQA/MCQ) and Part 2 (EDA story)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import nbformat as nbf
+
+
+ROOT = Path(__file__).resolve().parents[1]
+NOTEBOOK_DIR = ROOT / "notebooks"
+NOTEBOOK_DIR.mkdir(parents=True, exist_ok=True)
+
+
+KERNEL_META = {
+    "kernelspec": {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3",
+    },
+    "language_info": {"name": "python"},
+}
+
+
+def _md(text: str) -> nbf.NotebookNode:
+    return nbf.v4.new_markdown_cell(text)
+
+
+def _code(text: str) -> nbf.NotebookNode:
+    return nbf.v4.new_code_cell(text)
+
+
+def build_mqa_mcq_notebook() -> Path:
+    cells: list[nbf.NotebookNode] = []
+    cells.append(
+        _md(
+            "# Part 1 Notebook - MQA + MCQ (Datathon 2026)\n\n"
+            "This notebook is designed for the **first scoring block**:\n"
+            "1. `MQA`: data quality and integrity checks\n"
+            "2. `MCQ`: reproducible answers with exact numbers\n\n"
+            "Outputs are exported to `../eda_results/scoring/`."
+        )
+    )
+
+    cells.append(
+        _code(
+            "from pathlib import Path\n"
+            "import json\n"
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "from IPython.display import display\n\n"
+            "DATA_DIR = Path('../dataset')\n"
+            "OUT_DIR = Path('../eda_results/scoring')\n"
+            "OUT_DIR.mkdir(parents=True, exist_ok=True)\n\n"
+            "pd.set_option('display.max_columns', None)\n"
+            "pd.set_option('display.float_format', '{:,.4f}'.format)\n\n"
+            "sales = pd.read_csv(DATA_DIR / 'sales.csv', parse_dates=['Date'])\n"
+            "orders = pd.read_csv(DATA_DIR / 'orders.csv', parse_dates=['order_date'])\n"
+            "order_items = pd.read_csv(DATA_DIR / 'order_items.csv', low_memory=False)\n"
+            "payments = pd.read_csv(DATA_DIR / 'payments.csv')\n"
+            "shipments = pd.read_csv(DATA_DIR / 'shipments.csv', parse_dates=['ship_date', 'delivery_date'])\n"
+            "returns = pd.read_csv(DATA_DIR / 'returns.csv', parse_dates=['return_date'])\n"
+            "reviews = pd.read_csv(DATA_DIR / 'reviews.csv', parse_dates=['review_date'])\n"
+            "customers = pd.read_csv(DATA_DIR / 'customers.csv', parse_dates=['signup_date'])\n"
+            "products = pd.read_csv(DATA_DIR / 'products.csv')\n"
+            "promotions = pd.read_csv(DATA_DIR / 'promotions.csv', parse_dates=['start_date', 'end_date'])\n"
+            "geography = pd.read_csv(DATA_DIR / 'geography.csv')\n"
+            "inventory = pd.read_csv(DATA_DIR / 'inventory.csv', parse_dates=['snapshot_date'])\n"
+            "web = pd.read_csv(DATA_DIR / 'web_traffic.csv', parse_dates=['date'])\n\n"
+            "datasets = {\n"
+            "    'sales': sales,\n"
+            "    'orders': orders,\n"
+            "    'order_items': order_items,\n"
+            "    'payments': payments,\n"
+            "    'shipments': shipments,\n"
+            "    'returns': returns,\n"
+            "    'reviews': reviews,\n"
+            "    'customers': customers,\n"
+            "    'products': products,\n"
+            "    'promotions': promotions,\n"
+            "    'geography': geography,\n"
+            "    'inventory': inventory,\n"
+            "    'web_traffic': web,\n"
+            "}\n"
+            "print('Loaded datasets:', ', '.join(datasets.keys()))"
+        )
+    )
+
+    cells.append(_md("## MQA - Table-level Quality"))
+    cells.append(
+        _code(
+            "rows = []\n"
+            "for name, df in datasets.items():\n"
+            "    total_cells = len(df) * len(df.columns)\n"
+            "    missing_pct = float(df.isna().sum().sum() / total_cells * 100) if total_cells else 0.0\n"
+            "    rows.append({\n"
+            "        'dataset': name,\n"
+            "        'rows': len(df),\n"
+            "        'cols': len(df.columns),\n"
+            "        'missing_pct_total': missing_pct,\n"
+            "    })\n\n"
+            "mqa_overview = pd.DataFrame(rows).sort_values('rows', ascending=False)\n"
+            "display(mqa_overview)\n\n"
+            "mqa_overview.to_csv(OUT_DIR / 'mqa_overview.csv', index=False)\n"
+            "print('Saved:', OUT_DIR / 'mqa_overview.csv')\n\n"
+            "print('\\nTop missing columns by dataset:')\n"
+            "for name, df in datasets.items():\n"
+            "    miss = (df.isna().mean() * 100).sort_values(ascending=False)\n"
+            "    miss = miss[miss > 0]\n"
+            "    if not miss.empty:\n"
+            "        print(f'- {name}:', {k: round(v, 2) for k, v in miss.head(4).to_dict().items()})"
+        )
+    )
+
+    cells.append(_md("## MQA - Integrity and Logic Checks"))
+    cells.append(
+        _code(
+            "order_ids = set(orders['order_id'])\n"
+            "product_ids = set(products['product_id'])\n"
+            "promo_ids = set(promotions['promo_id'])\n\n"
+            "integrity = pd.DataFrame([\n"
+            "    {'check': 'Duplicate order_id in orders', 'value': int(orders['order_id'].duplicated().sum())},\n"
+            "    {'check': 'Duplicate order_id in payments', 'value': int(payments['order_id'].duplicated().sum())},\n"
+            "    {'check': 'Duplicate product_id in products', 'value': int(products['product_id'].duplicated().sum())},\n"
+            "    {'check': 'Orphan order_id in order_items', 'value': int((~order_items['order_id'].isin(order_ids)).sum())},\n"
+            "    {'check': 'Orphan order_id in payments', 'value': int((~payments['order_id'].isin(order_ids)).sum())},\n"
+            "    {'check': 'Orphan order_id in shipments', 'value': int((~shipments['order_id'].isin(order_ids)).sum())},\n"
+            "    {'check': 'Orphan order_id in returns', 'value': int((~returns['order_id'].isin(order_ids)).sum())},\n"
+            "    {'check': 'Orphan order_id in reviews', 'value': int((~reviews['order_id'].isin(order_ids)).sum())},\n"
+            "    {'check': 'Orphan product_id in order_items', 'value': int((~order_items['product_id'].isin(product_ids)).sum())},\n"
+            "    {'check': 'Orphan product_id in returns', 'value': int((~returns['product_id'].isin(product_ids)).sum())},\n"
+            "    {'check': 'Unknown promo_id in order_items', 'value': int((~order_items['promo_id'].dropna().isin(promo_ids)).sum())},\n"
+            "    {'check': 'Delivery before ship date', 'value': int((shipments['delivery_date'] < shipments['ship_date']).sum())},\n"
+            "    {'check': 'Negative/zero payment value', 'value': int((payments['payment_value'] <= 0).sum())},\n"
+            "    {'check': 'Negative discount amount', 'value': int((order_items['discount_amount'] < 0).sum())},\n"
+            "])\n\n"
+            "display(integrity)\n"
+            "integrity.to_csv(OUT_DIR / 'mqa_integrity_checks.csv', index=False)\n"
+            "print('Saved:', OUT_DIR / 'mqa_integrity_checks.csv')\n\n"
+            "sales_missing_days = pd.date_range(sales['Date'].min(), sales['Date'].max(), freq='D').difference(sales['Date'])\n"
+            "web_missing_days = pd.date_range(web['date'].min(), web['date'].max(), freq='D').difference(web['date'])\n\n"
+            "print('\\nDate continuity:')\n"
+            "print('- sales missing daily dates:', len(sales_missing_days))\n"
+            "print('- web missing daily dates:', len(web_missing_days))\n\n"
+            "constant_inventory_cols = [c for c in inventory.columns if inventory[c].nunique(dropna=False) == 1]\n"
+            "print('- inventory constant columns:', constant_inventory_cols)"
+        )
+    )
+
+    cells.append(_md("## MCQ - Reproducible Answers (Q1-Q10)"))
+    cells.append(
+        _code(
+            "# Q1\n"
+            "q1_df = orders.loc[orders['order_status'] == 'delivered', ['customer_id', 'order_date']].drop_duplicates()\n"
+            "q1_df = q1_df.sort_values(['customer_id', 'order_date'])\n"
+            "q1_df['gap_days'] = q1_df.groupby('customer_id')['order_date'].diff().dt.days\n"
+            "q1_value = float(q1_df['gap_days'].dropna().median())\n\n"
+            "# Q2\n"
+            "products['gross_margin'] = (products['price'] - products['cogs']) / products['price']\n"
+            "q2_tbl = products.groupby('segment')['gross_margin'].mean().sort_values(ascending=False)\n"
+            "q2_value = q2_tbl.index[0]\n\n"
+            "# Q3\n"
+            "q3_tbl = returns.merge(products[['product_id', 'category']], on='product_id', how='left')\n"
+            "q3_tbl = q3_tbl.loc[q3_tbl['category'] == 'Streetwear', 'return_reason'].value_counts()\n"
+            "q3_value = q3_tbl.index[0]\n\n"
+            "# Q4\n"
+            "q4_tbl = web.groupby('traffic_source')['bounce_rate'].mean().sort_values()\n"
+            "q4_value = q4_tbl.index[0]\n\n"
+            "# Q5\n"
+            "q5_value = float(order_items['promo_id'].notna().mean() * 100)\n\n"
+            "# Q6\n"
+            "order_counts = orders.groupby('customer_id').size().rename('total_orders').reset_index()\n"
+            "q6_tbl = customers.loc[customers['age_group'].notna(), ['customer_id', 'age_group']].merge(order_counts, on='customer_id', how='left')\n"
+            "q6_tbl['total_orders'] = q6_tbl['total_orders'].fillna(0)\n"
+            "q6_tbl = q6_tbl.groupby('age_group')['total_orders'].mean().sort_values(ascending=False)\n"
+            "q6_value = q6_tbl.index[0]\n\n"
+            "# Q7\n"
+            "gross_line = order_items.assign(revenue=lambda d: d['quantity'] * d['unit_price'])\n"
+            "q7_tbl = (\n"
+            "    gross_line[['order_id', 'revenue']]\n"
+            "    .merge(orders[['order_id', 'zip']], on='order_id', how='left')\n"
+            "    .merge(geography[['zip', 'region']], on='zip', how='left')\n"
+            "    .groupby('region')['revenue']\n"
+            "    .sum()\n"
+            "    .sort_values(ascending=False)\n"
+            ")\n"
+            "q7_value = q7_tbl.index[0]\n\n"
+            "# Q8\n"
+            "q8_tbl = orders.loc[orders['order_status'] == 'cancelled', 'payment_method'].value_counts()\n"
+            "q8_value = q8_tbl.index[0]\n\n"
+            "# Q9\n"
+            "ret_size = returns.merge(products[['product_id', 'size']], on='product_id', how='left').groupby('size').size()\n"
+            "ord_size = order_items.merge(products[['product_id', 'size']], on='product_id', how='left').groupby('size').size()\n"
+            "q9_tbl = (ret_size / ord_size).sort_values(ascending=False)\n"
+            "q9_value = q9_tbl.index[0]\n\n"
+            "# Q10\n"
+            "q10_tbl = payments.groupby('installments')['payment_value'].mean().sort_values(ascending=False)\n"
+            "q10_value = int(q10_tbl.index[0])\n\n"
+            "mcq_answers = pd.DataFrame([\n"
+            "    {'qid': 'Q1', 'answer': q1_value, 'note': 'Median inter-order gap (days) among delivered orders'},\n"
+            "    {'qid': 'Q2', 'answer': q2_value, 'note': 'Highest average gross-margin segment'},\n"
+            "    {'qid': 'Q3', 'answer': q3_value, 'note': 'Most common return reason in Streetwear'},\n"
+            "    {'qid': 'Q4', 'answer': q4_value, 'note': 'Lowest average bounce-rate traffic source'},\n"
+            "    {'qid': 'Q5', 'answer': round(q5_value, 2), 'note': 'Percent of order_items rows with promo_id not null'},\n"
+            "    {'qid': 'Q6', 'answer': q6_value, 'note': 'Age group with highest avg orders per customer'},\n"
+            "    {'qid': 'Q7', 'answer': q7_value, 'note': 'Region with highest total revenue'},\n"
+            "    {'qid': 'Q8', 'answer': q8_value, 'note': 'Most used payment method among cancelled orders'},\n"
+            "    {'qid': 'Q9', 'answer': q9_value, 'note': 'Size with highest return-rate proxy'},\n"
+            "    {'qid': 'Q10', 'answer': q10_value, 'note': 'Installment plan with highest avg payment value'},\n"
+            "])\n\n"
+            "display(mcq_answers)\n"
+            "mcq_answers.to_csv(OUT_DIR / 'mcq_answers.csv', index=False)\n"
+            "print('Saved:', OUT_DIR / 'mcq_answers.csv')"
+        )
+    )
+
+    cells.append(_md("## Export MQA + MCQ Snapshot"))
+    cells.append(
+        _code(
+            "snapshot = {\n"
+            "    'datasets': {name: {'rows': len(df), 'cols': len(df.columns)} for name, df in datasets.items()},\n"
+            "    'mcq_answers': mcq_answers.set_index('qid')['answer'].to_dict(),\n"
+            "}\n"
+            "with open(OUT_DIR / 'part1_snapshot.json', 'w', encoding='utf-8') as f:\n"
+            "    json.dump(snapshot, f, indent=2, default=str)\n"
+            "print('Saved:', OUT_DIR / 'part1_snapshot.json')"
+        )
+    )
+
+    nb = nbf.v4.new_notebook(cells=cells, metadata=KERNEL_META)
+    output_path = NOTEBOOK_DIR / "01_mqa_mcq_master.ipynb"
+    nbf.write(nb, output_path)
+    return output_path
+
+
+def build_eda_story_notebook() -> Path:
+    cells: list[nbf.NotebookNode] = []
+    cells.append(
+        _md(
+            "# Part 2 Notebook - EDA Business Story (Datathon 2026)\n\n"
+            "Goal: tell a complete business story with **hard numbers** and **actionable interpretations**.\n\n"
+            "This notebook exports:\n"
+            "- KPI tables (`CSV`)\n"
+            "- charts (`PNG`)\n"
+            "- executive summary (`Markdown` + `JSON`)\n"
+            "to `../eda_results/scoring/`."
+        )
+    )
+
+    cells.append(
+        _code(
+            "from pathlib import Path\n"
+            "import json\n"
+            "import pandas as pd\n"
+            "import numpy as np\n"
+            "import matplotlib.pyplot as plt\n"
+            "import seaborn as sns\n"
+            "import holidays\n"
+            "from IPython.display import display, Markdown\n\n"
+            "DATA_DIR = Path('../dataset')\n"
+            "OUT_DIR = Path('../eda_results/scoring')\n"
+            "OUT_DIR.mkdir(parents=True, exist_ok=True)\n\n"
+            "pd.set_option('display.max_columns', None)\n"
+            "pd.set_option('display.float_format', '{:,.4f}'.format)\n"
+            "sns.set_theme(style='whitegrid')\n\n"
+            "sales = pd.read_csv(DATA_DIR / 'sales.csv', parse_dates=['Date']).sort_values('Date')\n"
+            "orders = pd.read_csv(DATA_DIR / 'orders.csv', parse_dates=['order_date'])\n"
+            "order_items = pd.read_csv(DATA_DIR / 'order_items.csv', low_memory=False)\n"
+            "products = pd.read_csv(DATA_DIR / 'products.csv')\n"
+            "customers = pd.read_csv(DATA_DIR / 'customers.csv', parse_dates=['signup_date'])\n"
+            "geography = pd.read_csv(DATA_DIR / 'geography.csv')\n"
+            "returns = pd.read_csv(DATA_DIR / 'returns.csv', parse_dates=['return_date'])\n"
+            "payments = pd.read_csv(DATA_DIR / 'payments.csv')\n"
+            "shipments = pd.read_csv(DATA_DIR / 'shipments.csv', parse_dates=['ship_date', 'delivery_date'])\n"
+            "web = pd.read_csv(DATA_DIR / 'web_traffic.csv', parse_dates=['date'])\n"
+            "promotions = pd.read_csv(DATA_DIR / 'promotions.csv', parse_dates=['start_date', 'end_date'])\n"
+            "reviews = pd.read_csv(DATA_DIR / 'reviews.csv', parse_dates=['review_date'])\n"
+            "inventory = pd.read_csv(DATA_DIR / 'inventory.csv', parse_dates=['snapshot_date'])\n\n"
+            "line = order_items.copy()\n"
+            "line['gross'] = line['quantity'] * line['unit_price']\n"
+            "line['net'] = line['gross'] - line['discount_amount']\n"
+            "line['has_promo'] = line['promo_id'].notna()\n"
+            "line = line.merge(products[['product_id', 'cogs', 'segment', 'category', 'size']], on='product_id', how='left')\n"
+            "line['cost_est'] = line['quantity'] * line['cogs']\n"
+            "line['margin_est'] = line['net'] - line['cost_est']\n"
+            "line['margin_est_pct'] = np.where(line['net'] > 0, line['margin_est'] / line['net'], np.nan)\n"
+            "print('Data prepared.')"
+        )
+    )
+
+    cells.append(_md("## 1) Financial Trajectory: Revenue, Cost, Margin"))
+    cells.append(
+        _code(
+            "sales['year'] = sales['Date'].dt.year\n"
+            "sales['month'] = sales['Date'].dt.month\n"
+            "sales['dow_name'] = sales['Date'].dt.day_name()\n\n"
+            "total_revenue = float(sales['Revenue'].sum())\n"
+            "total_cogs = float(sales['COGS'].sum())\n"
+            "gross_margin_pct = float((total_revenue - total_cogs) / total_revenue * 100)\n"
+            "n_years = (sales['Date'].max() - sales['Date'].min()).days / 365.25\n"
+            "cagr = float((sales.iloc[-1]['Revenue'] / sales.iloc[0]['Revenue']) ** (1 / n_years) - 1)\n\n"
+            "yearly = sales.groupby('year').agg(revenue=('Revenue', 'sum'), cogs=('COGS', 'sum'))\n"
+            "yearly['margin_pct'] = (yearly['revenue'] - yearly['cogs']) / yearly['revenue'] * 100\n"
+            "yearly['yoy_pct'] = yearly['revenue'].pct_change() * 100\n"
+            "display(yearly.round(2))\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "yearly['revenue'].plot(kind='bar', ax=axes[0], color='#1f77b4')\n"
+            "axes[0].set_title('Yearly Revenue')\n"
+            "axes[0].set_ylabel('Revenue')\n"
+            "yearly['margin_pct'].plot(kind='line', marker='o', ax=axes[1], color='#d62728')\n"
+            "axes[1].set_title('Yearly Estimated Gross Margin %')\n"
+            "axes[1].set_ylabel('Margin %')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_01_yearly_revenue_margin.png', dpi=150)\n"
+            "plt.show()\n\n"
+            "print(f'Total revenue: {total_revenue:,.0f}')\n"
+            "print(f'Total COGS: {total_cogs:,.0f}')\n"
+            "print(f'Gross margin: {gross_margin_pct:.2f}%')\n"
+            "print(f'Revenue CAGR (daily endpoints): {cagr * 100:.2f}%')"
+        )
+    )
+
+    cells.append(_md("## 2) Seasonality: Month, Weekday, Holiday Windows"))
+    cells.append(
+        _code(
+            "month_avg = sales.groupby('month')['Revenue'].mean().sort_values(ascending=False)\n"
+            "dow_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']\n"
+            "dow_avg = sales.groupby('dow_name')['Revenue'].mean().reindex(dow_order)\n\n"
+            "years = range(sales['year'].min(), sales['year'].max() + 1)\n"
+            "vn_holidays = holidays.VN(years=years)\n"
+            "sales['is_holiday'] = sales['Date'].dt.date.isin(vn_holidays)\n"
+            "sales['holiday_name'] = sales['Date'].dt.date.map(vn_holidays)\n"
+            "holiday_mean = float(sales.loc[sales['is_holiday'], 'Revenue'].mean())\n"
+            "non_holiday_mean = float(sales.loc[~sales['is_holiday'], 'Revenue'].mean())\n"
+            "holiday_lift_pct = (holiday_mean / non_holiday_mean - 1) * 100\n"
+            "holiday_ascii = (\n"
+            "    sales['holiday_name']\n"
+            "    .fillna('')\n"
+            "    .astype(str)\n"
+            "    .str.normalize('NFKD')\n"
+            "    .str.encode('ascii', errors='ignore')\n"
+            "    .str.decode('ascii')\n"
+            ")\n"
+            "tet_mask = holiday_ascii.str.contains('Tet|Giao thua', case=False, regex=True)\n"
+            "tet_mean = float(sales.loc[tet_mask, 'Revenue'].mean()) if tet_mask.any() else np.nan\n"
+            "tet_lift_pct = (tet_mean / non_holiday_mean - 1) * 100 if tet_mask.any() else np.nan\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "month_avg.sort_index().plot(kind='bar', ax=axes[0], color='#17becf')\n"
+            "axes[0].set_title('Average Revenue by Month')\n"
+            "axes[0].set_xlabel('Month')\n"
+            "dow_avg.plot(kind='bar', ax=axes[1], color='#9467bd')\n"
+            "axes[1].set_title('Average Revenue by Weekday')\n"
+            "axes[1].set_xlabel('Weekday')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_02_seasonality.png', dpi=150)\n"
+            "plt.show()\n\n"
+            "print(f'Peak month avg revenue: month {int(month_avg.index[0])} -> {month_avg.iloc[0]:,.0f}')\n"
+            "print(f'Trough month avg revenue: month {int(month_avg.index[-1])} -> {month_avg.iloc[-1]:,.0f}')\n"
+            "print(f'Holiday lift vs non-holiday: {holiday_lift_pct:.2f}%')\n"
+            "print(f'Tet window lift vs non-holiday: {tet_lift_pct:.2f}%')"
+        )
+    )
+
+    cells.append(_md("## 3) Demand Channels and Geography"))
+    cells.append(
+        _code(
+            "region_tbl = (\n"
+            "    line[['order_id', 'net']]\n"
+            "    .merge(orders[['order_id', 'zip']], on='order_id', how='left')\n"
+            "    .merge(geography[['zip', 'region']], on='zip', how='left')\n"
+            "    .groupby('region')['net']\n"
+            "    .sum()\n"
+            "    .sort_values(ascending=False)\n"
+            ")\n"
+            "region_share = region_tbl / region_tbl.sum() * 100\n\n"
+            "web_daily = web.groupby('date').agg(\n"
+            "    sessions=('sessions', 'sum'),\n"
+            "    visitors=('unique_visitors', 'sum'),\n"
+            "    page_views=('page_views', 'sum'),\n"
+            "    bounce=('bounce_rate', 'mean'),\n"
+            ")\n"
+            "joint = sales.rename(columns={'Date': 'date'})[['date', 'Revenue']].merge(web_daily, on='date', how='inner').dropna()\n"
+            "web_corr = joint[['Revenue', 'sessions', 'visitors', 'page_views', 'bounce']].corr()['Revenue'].drop('Revenue').sort_values(ascending=False)\n\n"
+            "source_tbl = (\n"
+            "    orders[['order_id', 'order_source']]\n"
+            "    .merge(line[['order_id', 'net']], on='order_id', how='left')\n"
+            "    .groupby('order_source')\n"
+            "    .agg(orders=('order_id', 'nunique'), net=('net', 'sum'))\n"
+            ")\n"
+            "source_tbl['aov'] = source_tbl['net'] / source_tbl['orders']\n"
+            "source_tbl['net_share'] = source_tbl['net'] / source_tbl['net'].sum() * 100\n"
+            "source_tbl = source_tbl.sort_values('net', ascending=False)\n\n"
+            "display(pd.DataFrame({'region_net': region_tbl, 'region_share_pct': region_share}).round(2))\n"
+            "display(source_tbl.round(2))\n"
+            "display(web_corr.round(4).to_frame('corr_with_revenue'))\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "region_share.sort_values(ascending=False).plot(kind='bar', ax=axes[0], color='#2ca02c')\n"
+            "axes[0].set_title('Revenue Share by Region (%)')\n"
+            "axes[0].set_ylabel('Share %')\n"
+            "source_tbl['net_share'].plot(kind='bar', ax=axes[1], color='#8c564b')\n"
+            "axes[1].set_title('Revenue Share by Order Source (%)')\n"
+            "axes[1].set_ylabel('Share %')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_03_geo_channel.png', dpi=150)\n"
+            "plt.show()"
+        )
+    )
+
+    cells.append(_md("## 4) Promotion Economics: Volume vs Value vs Margin"))
+    cells.append(
+        _code(
+            "promo_stats = line.groupby('has_promo').agg(\n"
+            "    lines=('order_id', 'size'),\n"
+            "    qty=('quantity', 'sum'),\n"
+            "    net=('net', 'sum'),\n"
+            "    gross=('gross', 'sum'),\n"
+            "    discount=('discount_amount', 'sum'),\n"
+            "    margin_est=('margin_est', 'sum'),\n"
+            ")\n"
+            "promo_stats['discount_rate'] = promo_stats['discount'] / promo_stats['gross'] * 100\n"
+            "promo_stats['aov'] = promo_stats['net'] / promo_stats['lines']\n"
+            "promo_stats['margin_est_pct'] = promo_stats['margin_est'] / promo_stats['net'] * 100\n\n"
+            "line['discount_pct'] = np.where(line['gross'] > 0, line['discount_amount'] / line['gross'] * 100, 0)\n"
+            "line['discount_bucket'] = pd.cut(\n"
+            "    line['discount_pct'],\n"
+            "    bins=[-0.01, 0.01, 5, 10, 20, 100],\n"
+            "    labels=['0%', '0-5%', '5-10%', '10-20%', '20%+'],\n"
+            ")\n"
+            "bucket_tbl = line.groupby('discount_bucket', observed=False).agg(\n"
+            "    lines=('order_id', 'size'),\n"
+            "    net=('net', 'sum'),\n"
+            "    gross=('gross', 'sum'),\n"
+            "    discount=('discount_amount', 'sum'),\n"
+            "    margin_est=('margin_est', 'sum'),\n"
+            ")\n"
+            "bucket_tbl['aov'] = bucket_tbl['net'] / bucket_tbl['lines']\n"
+            "bucket_tbl['discount_rate'] = bucket_tbl['discount'] / bucket_tbl['gross'] * 100\n"
+            "bucket_tbl['margin_est_pct'] = bucket_tbl['margin_est'] / bucket_tbl['net'] * 100\n\n"
+            "promo_channel = (\n"
+            "    line[line['has_promo']]\n"
+            "    .merge(promotions[['promo_id', 'promo_channel']], on='promo_id', how='left')\n"
+            "    .groupby('promo_channel')\n"
+            "    .agg(lines=('order_id', 'size'), net=('net', 'sum'), gross=('gross', 'sum'), discount=('discount_amount', 'sum'))\n"
+            ")\n"
+            "promo_channel['discount_rate'] = promo_channel['discount'] / promo_channel['gross'] * 100\n"
+            "promo_channel['aov'] = promo_channel['net'] / promo_channel['lines']\n"
+            "promo_channel = promo_channel.sort_values('net', ascending=False)\n\n"
+            "display(promo_stats.round(2))\n"
+            "display(bucket_tbl.round(2))\n"
+            "display(promo_channel.round(2))\n\n"
+            "fig, axes = plt.subplots(1, 3, figsize=(18, 5))\n"
+            "promo_stats['aov'].rename({False: 'No promo', True: 'Promo'}).plot(kind='bar', ax=axes[0], color=['#1f77b4', '#ff7f0e'])\n"
+            "axes[0].set_title('AOV: Promo vs Non-promo')\n"
+            "axes[0].set_ylabel('AOV')\n"
+            "bucket_tbl['margin_est_pct'].plot(kind='bar', ax=axes[1], color='#d62728')\n"
+            "axes[1].set_title('Estimated Margin % by Discount Bucket')\n"
+            "axes[1].set_ylabel('Margin %')\n"
+            "promo_channel['discount_rate'].plot(kind='bar', ax=axes[2], color='#9467bd')\n"
+            "axes[2].set_title('Discount Rate by Promo Channel')\n"
+            "axes[2].set_ylabel('Discount %')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_04_promo_economics.png', dpi=150)\n"
+            "plt.show()"
+        )
+    )
+
+    cells.append(_md("## 5) Customer Behavior and Lifecycle"))
+    cells.append(
+        _code(
+            "order_net = line.groupby('order_id')['net'].sum().reset_index(name='order_net')\n"
+            "cust_ord = (\n"
+            "    orders[['order_id', 'customer_id']]\n"
+            "    .merge(order_net, on='order_id', how='left')\n"
+            "    .merge(customers[['customer_id', 'age_group', 'acquisition_channel']], on='customer_id', how='left')\n"
+            ")\n\n"
+            "age_tbl = cust_ord.groupby('age_group').agg(\n"
+            "    orders=('order_id', 'nunique'),\n"
+            "    customers=('customer_id', 'nunique'),\n"
+            "    net=('order_net', 'sum'),\n"
+            ")\n"
+            "age_tbl['orders_per_customer'] = age_tbl['orders'] / age_tbl['customers']\n"
+            "age_tbl['aov'] = age_tbl['net'] / age_tbl['orders']\n"
+            "age_tbl = age_tbl.sort_values('orders_per_customer', ascending=False)\n\n"
+            "acq_tbl = cust_ord.groupby('acquisition_channel').agg(\n"
+            "    orders=('order_id', 'nunique'),\n"
+            "    customers=('customer_id', 'nunique'),\n"
+            "    net=('order_net', 'sum'),\n"
+            ")\n"
+            "acq_tbl['orders_per_customer'] = acq_tbl['orders'] / acq_tbl['customers']\n"
+            "acq_tbl['aov'] = acq_tbl['net'] / acq_tbl['orders']\n"
+            "acq_tbl = acq_tbl.sort_values('aov', ascending=False)\n\n"
+            "od = orders[['customer_id', 'order_date']].sort_values(['customer_id', 'order_date'])\n"
+            "first = od.groupby('customer_id').nth(0).rename(columns={'order_date': 'first_order'}).reset_index()\n"
+            "second = od.groupby('customer_id').nth(1).rename(columns={'order_date': 'second_order'}).reset_index()\n"
+            "cohort = first.merge(second, on='customer_id', how='left').merge(customers[['customer_id', 'age_group']], on='customer_id', how='left')\n"
+            "cohort['gap_days'] = (cohort['second_order'] - cohort['first_order']).dt.days\n"
+            "cohort['repeat_180'] = cohort['gap_days'].le(180)\n"
+            "cohort['repeat_365'] = cohort['gap_days'].le(365)\n"
+            "overall_repeat_180 = float(cohort['repeat_180'].mean() * 100)\n"
+            "overall_repeat_365 = float(cohort['repeat_365'].mean() * 100)\n"
+            "age_repeat = (cohort.groupby('age_group')['repeat_180'].mean() * 100).sort_values(ascending=False)\n\n"
+            "display(age_tbl.round(2))\n"
+            "display(acq_tbl.round(2))\n"
+            "display(age_repeat.round(2).to_frame('repeat_180_pct'))\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "age_tbl['orders_per_customer'].plot(kind='bar', ax=axes[0], color='#2ca02c')\n"
+            "axes[0].set_title('Orders per Customer by Age Group')\n"
+            "axes[0].set_ylabel('Orders / Customer')\n"
+            "age_repeat.plot(kind='bar', ax=axes[1], color='#17becf')\n"
+            "axes[1].set_title('Repeat <=180 days by Age Group (%)')\n"
+            "axes[1].set_ylabel('Percent')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_05_customer_lifecycle.png', dpi=150)\n"
+            "plt.show()\n\n"
+            "print(f'Overall repeat <=180 days: {overall_repeat_180:.2f}%')\n"
+            "print(f'Overall repeat <=365 days: {overall_repeat_365:.2f}%')"
+        )
+    )
+
+    cells.append(_md("## 6) Operational Leakage: Returns, Cancellations, Delivery"))
+    cells.append(
+        _code(
+            "cancel_tbl = orders.assign(cancelled=orders['order_status'].eq('cancelled')).groupby('payment_method').agg(\n"
+            "    orders=('order_id', 'size'),\n"
+            "    cancelled=('cancelled', 'sum'),\n"
+            ")\n"
+            "cancel_tbl['cancel_rate_pct'] = cancel_tbl['cancelled'] / cancel_tbl['orders'] * 100\n"
+            "cancel_tbl['cancel_share_pct'] = cancel_tbl['cancelled'] / cancel_tbl['cancelled'].sum() * 100\n"
+            "cancel_tbl = cancel_tbl.sort_values('cancelled', ascending=False)\n\n"
+            "return_reason_tbl = (returns['return_reason'].value_counts(normalize=True) * 100).to_frame('pct').round(2)\n"
+            "ret_cat_qty = returns.merge(products[['product_id', 'category']], on='product_id', how='left').groupby('category')['return_quantity'].sum()\n"
+            "sold_cat_qty = line.groupby('category')['quantity'].sum()\n"
+            "ret_cat_rate = (ret_cat_qty / sold_cat_qty * 100).sort_values(ascending=False)\n\n"
+            "ret_size_qty = returns.merge(products[['product_id', 'size']], on='product_id', how='left').groupby('size')['return_quantity'].sum()\n"
+            "sold_size_qty = line.groupby('size')['quantity'].sum()\n"
+            "ret_size_rate = (ret_size_qty / sold_size_qty * 100).sort_values(ascending=False)\n\n"
+            "ship = shipments.copy()\n"
+            "ship['lead_days'] = (ship['delivery_date'] - ship['ship_date']).dt.days\n"
+            "ship_stats = ship['lead_days'].describe(percentiles=[0.5, 0.9, 0.95])\n"
+            "ship_rating = (\n"
+            "    ship.groupby('order_id')['lead_days'].mean().reset_index()\n"
+            "    .merge(reviews.groupby('order_id')['rating'].mean().reset_index(), on='order_id', how='inner')\n"
+            ")\n"
+            "ship_rating_corr = float(ship_rating['lead_days'].corr(ship_rating['rating']))\n\n"
+            "display(cancel_tbl.round(2))\n"
+            "display(return_reason_tbl)\n"
+            "display(ret_cat_rate.round(2).to_frame('return_rate_pct'))\n"
+            "display(ret_size_rate.round(2).to_frame('return_rate_pct'))\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "cancel_tbl['cancel_rate_pct'].plot(kind='bar', ax=axes[0], color='#ff7f0e')\n"
+            "axes[0].set_title('Cancellation Rate by Payment Method (%)')\n"
+            "axes[0].set_ylabel('Cancel %')\n"
+            "ret_cat_rate.plot(kind='bar', ax=axes[1], color='#d62728')\n"
+            "axes[1].set_title('Return Rate by Category (%)')\n"
+            "axes[1].set_ylabel('Return %')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_06_operational_leakage.png', dpi=150)\n"
+            "plt.show()\n\n"
+            "print(f\"Delivery lead-time median: {ship_stats['50%']:.2f} days\")\n"
+            "print(f\"Delivery lead-time p90: {ship_stats['90%']:.2f} days\")\n"
+            "print(f\"Delivery lead-time p95: {ship_stats['95%']:.2f} days\")\n"
+            "print(f'Lead-time vs rating correlation: {ship_rating_corr:.4f}')"
+        )
+    )
+
+    cells.append(_md("## 7) Inventory Pressure vs Revenue"))
+    cells.append(
+        _code(
+            "inv_month = inventory.groupby(inventory['snapshot_date'].dt.to_period('M')).agg(\n"
+            "    stockout_rate=('stockout_flag', 'mean'),\n"
+            "    overstock_rate=('overstock_flag', 'mean'),\n"
+            "    sell_through=('sell_through_rate', 'mean'),\n"
+            "    days_supply=('days_of_supply', 'mean'),\n"
+            ").reset_index()\n"
+            "inv_month['month'] = inv_month['snapshot_date'].dt.to_timestamp()\n"
+            "sales_month = sales.assign(month=sales['Date'].dt.to_period('M')).groupby('month')['Revenue'].sum().reset_index()\n"
+            "sales_month['month'] = sales_month['month'].dt.to_timestamp()\n"
+            "inv_joint = sales_month.merge(inv_month[['month', 'stockout_rate', 'overstock_rate', 'sell_through', 'days_supply']], on='month', how='inner')\n"
+            "inv_corr = inv_joint[['Revenue', 'stockout_rate', 'overstock_rate', 'sell_through', 'days_supply']].corr()['Revenue'].drop('Revenue').sort_values(ascending=False)\n\n"
+            "display(inv_corr.round(4).to_frame('corr_with_monthly_revenue'))\n\n"
+            "fig, axes = plt.subplots(1, 2, figsize=(16, 5))\n"
+            "sns.scatterplot(data=inv_joint, x='sell_through', y='Revenue', ax=axes[0], alpha=0.7)\n"
+            "axes[0].set_title('Revenue vs Sell-through')\n"
+            "sns.scatterplot(data=inv_joint, x='days_supply', y='Revenue', ax=axes[1], alpha=0.7, color='#8c564b')\n"
+            "axes[1].set_title('Revenue vs Days of Supply')\n"
+            "plt.tight_layout()\n"
+            "plt.savefig(OUT_DIR / 'fig_story_07_inventory_pressure.png', dpi=150)\n"
+            "plt.show()"
+        )
+    )
+
+    cells.append(_md("## 8) Executive Interpretation and Action Plan"))
+    cells.append(
+        _code(
+            "promo_line_share = float(line['has_promo'].mean() * 100)\n"
+            "promo_net_share = float(line.loc[line['has_promo'], 'net'].sum() / line['net'].sum() * 100)\n"
+            "promo_aov = float(line.loc[line['has_promo'], 'net'].mean())\n"
+            "nonpromo_aov = float(line.loc[~line['has_promo'], 'net'].mean())\n"
+            "promo_margin_pct = float((line.loc[line['has_promo'], 'margin_est'].sum() / line.loc[line['has_promo'], 'net'].sum()) * 100)\n"
+            "nonpromo_margin_pct = float((line.loc[~line['has_promo'], 'margin_est'].sum() / line.loc[~line['has_promo'], 'net'].sum()) * 100)\n\n"
+            "east_share = float((\n"
+            "    line[['order_id', 'net']]\n"
+            "    .merge(orders[['order_id', 'zip']], on='order_id', how='left')\n"
+            "    .merge(geography[['zip', 'region']], on='zip', how='left')\n"
+            "    .groupby('region')['net']\n"
+            "    .sum()\n"
+            "    .pipe(lambda s: s / s.sum() * 100)\n"
+            ")['East'])\n\n"
+            "summary_md = f'''# EDA Business Story Summary\n\n"
+            "## Financial Core\n"
+            "- Total revenue: **{total_revenue:,.0f}**\n"
+            "- Total COGS: **{total_cogs:,.0f}**\n"
+            "- Gross margin: **{gross_margin_pct:.2f}%**\n"
+            "- End-to-end revenue CAGR: **{cagr * 100:.2f}%**\n\n"
+            "## Demand Shape\n"
+            "- Peak month average revenue: **{month_avg.iloc[0]:,.0f}** (month {int(month_avg.index[0])})\n"
+            "- Lowest month average revenue: **{month_avg.iloc[-1]:,.0f}** (month {int(month_avg.index[-1])})\n"
+            "- Holiday lift vs non-holiday days: **{holiday_lift_pct:.2f}%**\n"
+            "- Tet-window lift vs non-holiday days: **{tet_lift_pct:.2f}%**\n\n"
+            "## Channel and Geo\n"
+            "- East contributes **{east_share:.2f}%** of net revenue.\n"
+            "- Web sessions correlation with revenue: **{web_corr['sessions']:.4f}** (moderate positive signal).\n\n"
+            "## Promotion Economics\n"
+            "- Promo line share: **{promo_line_share:.2f}%**, but promo net-revenue share is only **{promo_net_share:.2f}%**.\n"
+            "- Promo AOV: **{promo_aov:,.0f}** vs non-promo AOV **{nonpromo_aov:,.0f}**.\n"
+            "- Estimated margin with promo: **{promo_margin_pct:.2f}%** vs non-promo **{nonpromo_margin_pct:.2f}%**.\n\n"
+            "## Operations\n"
+            "- Highest cancellation volume payment method: **{cancel_tbl.index[0]}** ({int(cancel_tbl.iloc[0]['cancelled']):,} cancelled orders).\n"
+            "- Highest cancellation rate payment method: **{cancel_tbl['cancel_rate_pct'].idxmax()}** ({cancel_tbl['cancel_rate_pct'].max():.2f}%).\n"
+            "- Top return reason: **{return_reason_tbl.index[0]}** ({return_reason_tbl.iloc[0, 0]:.2f}% of return records).\n"
+            "- Delivery lead-time median/p90/p95: **{ship_stats['50%']:.1f}/{ship_stats['90%']:.1f}/{ship_stats['95%']:.1f} days**.\n\n"
+            "## Customer Lifecycle\n"
+            "- Repeat <= 180 days: **{overall_repeat_180:.2f}%**.\n"
+            "- Repeat <= 365 days: **{overall_repeat_365:.2f}%**.\n"
+            "- Highest orders-per-customer age group: **{age_tbl.index[0]}** ({age_tbl.iloc[0]['orders_per_customer']:.2f}).\n\n"
+            "## Priority Business Actions\n"
+            "1. **Tighten discount governance**: cap high-discount campaigns and prioritize channels with better value retention.\n"
+            "2. **Geo-focused inventory allocation**: protect East availability while reducing overstock in lower-yield periods.\n"
+            "3. **Payment and checkout optimization**: reduce cancellation leakage for high-risk payment paths.\n"
+            "4. **Returns prevention**: focus on top return reasons and high-return categories/sizes with fit and quality interventions.\n"
+            "5. **Lifecycle orchestration**: trigger re-engagement before 180-day churn windows for high-frequency cohorts.\n"
+            "'''\n\n"
+            "display(Markdown(summary_md))\n\n"
+            "(OUT_DIR / 'eda_business_story.md').write_text(summary_md, encoding='utf-8')\n"
+            "print('Saved:', OUT_DIR / 'eda_business_story.md')\n\n"
+            "kpi_payload = {\n"
+            "    'total_revenue': total_revenue,\n"
+            "    'total_cogs': total_cogs,\n"
+            "    'gross_margin_pct': gross_margin_pct,\n"
+            "    'cagr_pct': cagr * 100,\n"
+            "    'promo_line_share_pct': promo_line_share,\n"
+            "    'promo_net_share_pct': promo_net_share,\n"
+            "    'promo_aov': promo_aov,\n"
+            "    'nonpromo_aov': nonpromo_aov,\n"
+            "    'promo_margin_est_pct': promo_margin_pct,\n"
+            "    'nonpromo_margin_est_pct': nonpromo_margin_pct,\n"
+            "    'holiday_lift_pct': holiday_lift_pct,\n"
+            "    'tet_lift_pct': tet_lift_pct,\n"
+            "    'repeat_180_pct': overall_repeat_180,\n"
+            "    'repeat_365_pct': overall_repeat_365,\n"
+            "    'east_revenue_share_pct': east_share,\n"
+            "}\n\n"
+            "with open(OUT_DIR / 'eda_business_kpis.json', 'w', encoding='utf-8') as f:\n"
+            "    json.dump(kpi_payload, f, indent=2)\n"
+            "print('Saved:', OUT_DIR / 'eda_business_kpis.json')\n\n"
+            "yearly.round(4).to_csv(OUT_DIR / 'kpi_yearly_financials.csv')\n"
+            "source_tbl.round(4).to_csv(OUT_DIR / 'kpi_source_table.csv')\n"
+            "cancel_tbl.round(4).to_csv(OUT_DIR / 'kpi_cancellation_table.csv')\n"
+            "age_tbl.round(4).to_csv(OUT_DIR / 'kpi_age_table.csv')\n"
+            "bucket_tbl.round(4).to_csv(OUT_DIR / 'kpi_discount_bucket_table.csv')\n"
+            "print('Saved KPI tables to', OUT_DIR)"
+        )
+    )
+
+    nb = nbf.v4.new_notebook(cells=cells, metadata=KERNEL_META)
+    output_path = NOTEBOOK_DIR / "02_eda_business_story.ipynb"
+    nbf.write(nb, output_path)
+    return output_path
+
+
+def main() -> None:
+    part1 = build_mqa_mcq_notebook()
+    part2 = build_eda_story_notebook()
+    print("Created notebooks:")
+    print("-", part1)
+    print("-", part2)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,6 @@
+payment_method,orders,cancelled,cancel_rate_pct,cancel_share_pct
+credit_card,356352,28452,7.9842,47.849
+cod,96681,15468,15.999,26.0133
+paypal,97018,7817,8.0573,13.1462
+apple_pay,64763,5190,8.0138,8.7283
+bank_transfer,32131,2535,7.8896,4.2632

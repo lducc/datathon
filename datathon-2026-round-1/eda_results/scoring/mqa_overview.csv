@@ -1,0 +1,14 @@
+dataset,rows,cols,missing_pct_total
+order_items,714669,7,23.043954613954153
+payments,646945,4,0.0
+orders,646945,8,0.0
+shipments,566067,4,0.0
+customers,121930,7,0.0
+reviews,113551,7,0.0
+inventory,60247,17,0.0
+geography,39948,4,0.0
+returns,39939,7,0.0
+sales,3833,3,0.0
+web_traffic,3652,7,0.0
+products,2412,8,0.0
+promotions,50,10,8.0

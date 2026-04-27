@@ -1,0 +1,9 @@
+file,rows,date_match,nulls,positive_revenue,cogs_lt_revenue
+datathon2026_submission_fixed.csv,548,True,0,True,True
+ours_current_fixed.csv,548,True,0,True,True
+r1_ensemble_fixed.csv,548,True,0,True,True
+r1_lgb_fixed.csv,548,True,0,True,True
+r1_opt_baseline_fixed.csv,548,True,0,True,True
+r1_residual_ensemble_fixed.csv,548,True,0,True,True
+submission_blend_A.csv,548,True,0,True,True
+submission_blend_B.csv,548,True,0,True,True

@@ -1,0 +1,15 @@
+check,value
+Duplicate order_id in orders,0
+Duplicate order_id in payments,0
+Duplicate product_id in products,0
+Orphan order_id in order_items,0
+Orphan order_id in payments,0
+Orphan order_id in shipments,0
+Orphan order_id in returns,0
+Orphan order_id in reviews,0
+Orphan product_id in order_items,0
+Orphan product_id in returns,0
+Unknown promo_id in order_items,0
+Delivery before ship date,0
+Negative/zero payment value,0
+Negative discount amount,0

@@ -1,0 +1,11 @@
+qid,answer,note
+Q1,178.0,Median inter-order gap (days) among delivered orders
+Q2,Standard,Highest average gross-margin segment
+Q3,wrong_size,Most common return reason in Streetwear
+Q4,email_campaign,Lowest average bounce-rate traffic source
+Q5,38.66,Percent of order_items rows with promo_id not null
+Q6,55+,Age group with highest avg orders per customer
+Q7,East,Region with highest total revenue
+Q8,credit_card,Most used payment method among cancelled orders
+Q9,S,Size with highest return-rate proxy
+Q10,6,Installment plan with highest avg payment value
