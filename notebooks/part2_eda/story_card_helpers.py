@@ -107,40 +107,10 @@ def apply_story_header(
     show_subtitle: bool = False,
     show_encoding_line: bool = False,
 ) -> None:
-    title_text = wrap_text(figure_title, width=80)
-    fig.suptitle(
-        title_text,
-        x=0.02,
-        y=0.98,
-        ha="left",
-        va="top",
-        fontsize=23,
-        fontweight="bold",
-        color=NAVY,
-    )
-    if show_subtitle and subtitle:
-        fig.text(
-            0.02,
-            0.935,
-            subtitle,
-            ha="left",
-            va="top",
-            fontsize=12.5,
-            color=MUTED,
-        )
-    if show_encoding_line and encoding_line:
-        fig.text(
-            0.05,
-            0.885,
-            wrap_text(encoding_line, width=110),
-            ha="left",
-            va="top",
-            fontsize=17,
-            fontweight="bold",
-            color="#111827",
-        )
+    # Final notebook/export figures are chart-only.
+    # Narrative titles and explanations live in markdown cells and in the paper.
     top_axis.set_title("")
-    fig.subplots_adjust(top=0.84, left=0.06, right=0.96, bottom=0.08)
+    fig.subplots_adjust(top=0.96, left=0.06, right=0.96, bottom=0.08)
 
 
 def fill_footer(footer_axes: list[plt.Axes], sections: list[tuple[str, str]]) -> None:
