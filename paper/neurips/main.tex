@@ -50,7 +50,7 @@ Dữ liệu 2012-2022 cho thấy doanh nghiệp không thiếu traffic, nhưng n
 \end{abstract}
 
 \section{Bối cảnh bài toán}
-Doanh thu của doanh nghiệp tăng mạnh trong nửa đầu giai đoạn quan sát, đạt đỉnh vào năm 2016, rồi suy giảm rõ rệt trước khi hồi phục nhẹ ở cuối mẫu. Nếu chỉ nhìn chuỗi doanh thu, đây có thể bị hiểu như một chu kỳ tăng trưởng mất đà. Tuy nhiên, dữ liệu vận hành cho thấy vấn đề cốt lõi nằm ở việc hệ thương mại ngày càng giữ lại ít giá trị hơn trên mỗi lượt truy cập, mỗi đơn hàng và mỗi vòng quay tồn kho. Báo cáo vì vậy truy vết cơ chế gây suy giảm, rồi dùng chính các tín hiệu đó để xây dựng mô hình dự báo Revenue.
+Doanh thu tăng mạnh trong nửa đầu giai đoạn quan sát, đạt đỉnh vào năm 2016, rồi suy giảm rõ rệt trước khi hồi phục nhẹ ở cuối mẫu. Tuy nhiên, dữ liệu vận hành cho thấy điểm gãy không nằm ở quy mô traffic mà ở khả năng giữ lại giá trị trên mỗi lượt truy cập, mỗi đơn hàng và mỗi vòng quay tồn kho. Báo cáo vì vậy truy vết cơ chế suy giảm này, rồi dùng chính các tín hiệu đó để xây dựng mô hình dự báo Revenue.
 
 \section{Phân tích dữ liệu}
 
@@ -59,7 +59,7 @@ Hình~\ref{fig:demand-break} cho thấy sessions vẫn tăng sau năm 2019, như
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\linewidth]{01_demand_quality_break.png}
+\includegraphics[width=0.9\textwidth]{01_demand_quality_break.png}
 \caption{Chất lượng cầu suy giảm sau năm 2019 dù lưu lượng truy cập vẫn tăng.}
 \label{fig:demand-break}
 \end{figure*}
@@ -134,49 +134,49 @@ Hình~\ref{fig:rfm-response} xác nhận rằng cấu trúc phủ rộng này kh
 
 \section{Mô hình dự báo Revenue}
 \subsection{Phương pháp và tiêu chuẩn lựa chọn}
-\begin{table}[t]
-\centering
-\small
-\caption{Tóm tắt feature groups và kiến trúc của \texttt{meta\_horizon\_nnls}.}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.32\linewidth}>{\raggedright\arraybackslash}p{0.38\linewidth}}
-\toprule
-Nhóm & Thành phần & Vai trò \\
-\midrule
-Lịch & month, day, dow, doy, days\_to\_month\_end, payday, Fourier terms & Mùa vụ theo tháng, tuần và hiệu ứng cuối tháng \\
-Đệ quy doanh thu & rev\_lag\_1, 7, 14, 28; EMA; rolling mean/std & Bám nhịp doanh thu ngắn hạn và quán tính mua lặp \\
-Thành phần thương mại & orders, AOV, orders $\times$ AOV & Ổn định phần xa của horizon và hạn chế drift \\
-Regime & post-2019 flag, event windows, odd-year August, recent user growth & Hấp thụ đứt gãy theo giai đoạn và anomaly theo mùa \\
-Meta-layer & OOF NNLS theo bucket early, mid, late & Trộn specialist bằng trọng số không âm, dễ giải thích \\
-\bottomrule
-\end{tabular}
-\end{table}
+Chúng tôi mô hình hóa Revenue như một bài toán horizon-sensitive forecasting. Mỗi specialist học một góc nhìn khác nhau của chuỗi: baseline seasonality cho mức nền, recursive head cho động lượng ngắn hạn, decomposition orders $\times$ AOV cho phần xa của horizon, và regime specialist cho các đứt gãy sau 2019 cùng event windows. Tất cả head đều được huấn luyện bằng gradient-boosted trees trên rolling out-of-fold predictions.
 
-Mục tiêu là dự báo Revenue hằng ngày trên horizon dài với sai số phụ thuộc vị trí kỳ dự báo. Final line \texttt{meta_horizon_nnls} là meta-ensemble với trọng số không âm theo ba bucket: early, mid, late. Base learners gồm baseline seasonality, recursive revenue head, decomposition orders $\times$ AOV và revenue regime specialist. Các head học bằng gradient-boosted trees trên dự báo out-of-fold; meta-layer dùng NNLS để trộn, giữ tính minh bạch.
+Tóm tắt feature groups và kiến trúc của final line được đặt ở Bảng~\ref{tab:appendix-model-architecture} trong phần phụ lục để giữ gọn phần thân báo cáo.
 
-Candidate được xây từ dữ liệu chính thức, đánh giá bằng rolling out-of-fold và đối chiếu public để loại cấu hình kém ổn định. \texttt{meta_horizon_ridge} tốt nhất internal, còn \texttt{meta_horizon_nnls} mạnh và ổn định nhất trên public nên được chọn.
+Meta-layer dùng non-negative least squares theo ba bucket early, mid, late để học trọng số trộn trên chính các dự báo OOF. Cấu hình này loại bỏ trọng số âm và giữ được khả năng diễn giải ở mức từng specialist. Candidate được sàng lọc trên dữ liệu chính thức bằng rolling OOF, và đối chiếu public để loại cấu hình overfit. \texttt{meta\_horizon\_ridge} tốt nhất trên internal CV, nhưng \texttt{meta\_horizon\_nnls} ổn định hơn trên public nên chọn làm final line.
 
 \subsection{Kết quả và diễn giải mô hình}
-\texttt{meta_horizon_nnls} thay đổi trọng số theo horizon: early $\sim$76.5\% recursive và 23.5\% component; sang mid/late, trọng số dịch dần về component, recursive vẫn làm nền. Ngắn hạn bị chi phối bởi quán tính; dài hạn dựa nhiều vào orders $\times$ AOV.
-
-SHAP xác nhận rằng recursive quan trọng với \texttt{rev_lag_1}, \texttt{rev_lag_7}, \texttt{rev_ema_3}, \texttt{days_to_month_end}, \texttt{day_of_month}, \texttt{recent_user_growth}; regime nổi bật với \texttt{year}, \texttt{recent_user_growth}, \texttt{is_post_2019}, \texttt{day_of_week}, \texttt{event_service_interact}, \texttt{is_odd_year_august}. Forecast nhất quán với Part 2, chỉ kéo dài cơ chế này về phía trước.
+\texttt{meta\_horizon\_nnls} dịch trọng số từ recursive sang component khi horizon dài ra: early vẫn chủ yếu bám quán tính ngắn hạn, còn mid/late dựa nhiều hơn vào decomposition orders $\times$ AOV để hạn chế drift. SHAP cho thấy recursive head bị chi phối bởi \texttt{rev\_lag\_1}, \texttt{rev\_lag\_7}, \texttt{rev\_ema\_3}, \texttt{days\_to\_month\_end} và \texttt{recent\_user\_growth}; regime specialist nổi bật ở \texttt{year}, \texttt{is\_post\_2019}, \texttt{event\_service\_interact} và \texttt{is\_odd\_year\_august}. Diễn giải này nhất quán với Part 2: doanh thu tương lai vẫn chịu chi phối bởi nhịp mua ngắn hạn, áp lực cuối tháng và các đứt gãy thương mại theo regime.
 
 \section{Hàm ý điều hành}
 Hình~\ref{fig:action-tradeoff} cho thấy con đường hợp lý không phải là giữ mọi đơn hàng bằng mọi giá, mà là chấp nhận cắt phần volume kém chất lượng để phục hồi khả năng sinh doanh thu lành mạnh. Thứ tự hành động vì vậy phải đi theo đúng chuỗi thất thoát giá trị đã được chỉ ra trong dữ liệu: siết markdown sâu, làm sạch core inventory ở các segment vừa overstock vừa stockout, rồi mới xử lý ma sát ở size guidance, mô tả sản phẩm và checkout. Nếu đảo ngược thứ tự này, doanh nghiệp sẽ tiếp tục mua thêm demand cho một hệ thống vẫn chưa sửa được các điểm mất giá trị cốt lõi.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{20_action_tradeoff_scenarios.png}
+\includegraphics[width=0.8\textwidth]{20_action_tradeoff_scenarios.png}
 \caption{Trade-off giữa doanh thu và gross profit dưới các kịch bản hành động. Kịch bản hợp lý không phải là giữ mọi đơn hàng bằng mọi giá, mà là chấp nhận cắt phần volume phá giá trị để phục hồi gross profit và vòng quay vốn.}
 \label{fig:action-tradeoff}
 \end{figure*}
 
 \section{Kết luận}
-Bộ dữ liệu này cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì liên tục làm rò rỉ giá trị trong quá trình biến nhu cầu thành doanh thu thực chất. Điểm gãy xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng và tích tụ thành áp lực tồn kho. Khi mô hình dự báo Revenue được xây trên đúng các driver đó, forecasting trở thành bước kiểm định cuối cùng cho toàn bộ lập luận kinh doanh.
+Bộ dữ liệu này cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì liên tục làm rò rỉ giá trị trong quá trình biến nhu cầu thành doanh thu thực chất. Điểm gãy xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng và tích tụ thành áp lực tồn kho. Mô hình dự báo Revenue vì vậy cũng trở thành phép kiểm định cuối cùng cho toàn bộ lập luận kinh doanh.
 
 \clearpage
 \appendix
 \section{Phụ lục diễn giải mô hình}
 Các bảng SHAP và thống kê ổn định theo fold được xuất tại thư mục appendix của repo. Trong bản phụ lục trực quan, chúng tôi giữ ba nhóm hình chính: phân bổ trọng số theo horizon, tổng hợp SHAP cho revenue specialist và độ ổn định của feature importance theo fold.
+
+\begin{table}[p]
+	\centering
+	\caption{Tóm tắt feature groups và kiến trúc của \texttt{meta\_horizon\_nnls}.}
+	\label{tab:appendix-model-architecture}
+	\begin{tabular}{>{\raggedright\arraybackslash}p{0.16\linewidth}>{\raggedright\arraybackslash}p{0.31\linewidth}>{\raggedright\arraybackslash}p{0.35\linewidth}}
+		\toprule
+		Nhóm & Thành phần & Vai trò \\
+		\midrule
+		Lịch & month, day, dow, doy, days\_to\_month\_end, payday, Fourier terms & Mùa vụ theo tháng, tuần và hiệu ứng cuối tháng \\
+		Đệ quy doanh thu & rev\_lag\_1, 7, 14, 28; EMA; rolling mean/std & Bám nhịp doanh thu ngắn hạn và quán tính mua lặp \\
+		Thành phần thương mại & orders, AOV, orders $\times$ AOV & Ổn định phần xa của horizon và hạn chế drift \\
+		Regime & post-2019 flag, event windows, odd-year August, recent user growth & Hấp thụ đứt gãy theo giai đoạn và anomaly theo mùa \\
+		Meta-layer & OOF NNLS theo bucket early, mid, late & Trộn specialist bằng trọng số không âm, dễ giải thích \\
+		\bottomrule
+	\end{tabular}
+\end{table}
 
 \begin{figure*}[p]
 \centering
