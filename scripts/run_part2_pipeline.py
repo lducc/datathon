@@ -182,6 +182,30 @@ APPROVED_EXPORTS = [
         "notebook": "03_inventory_and_operations.ipynb",
         "stage": "prescriptive",
     },
+    {
+        "index": 21,
+        "title": "Dòng hàng hóa, quay vòng và service level theo tháng",
+        "category": "inventory_and_operations",
+        "filename": "11_inventory_flow_turnover_service_level.png",
+        "notebook": "03_inventory_and_operations.ipynb",
+        "stage": "diagnostic",
+    },
+    {
+        "index": 22,
+        "title": "Doanh thu tập trung ở đâu và promo đang phủ rộng đến mức nào theo RFM",
+        "category": "customer_and_returns",
+        "filename": "22_rfm_revenue_mix_promo_share.png",
+        "notebook": "04_customer_and_returns.ipynb",
+        "stage": "predictive",
+    },
+    {
+        "index": 23,
+        "title": "Promo không tạo tín hiệu giữ chân ở bất kỳ phân khúc RFM nào",
+        "category": "customer_and_returns",
+        "filename": "23_rfm_repeat_delta_after_promo.png",
+        "notebook": "04_customer_and_returns.ipynb",
+        "stage": "prescriptive",
+    },
 ]
 
 
@@ -215,15 +239,9 @@ def ensure_directories() -> None:
 
 
 def clear_release_outputs() -> None:
-    for folder in [
-        FIGURES_DIR / "problem_overview",
-        FIGURES_DIR / "promotion_and_demand",
-        FIGURES_DIR / "inventory_and_operations",
-        FIGURES_DIR / "customer_and_returns",
-        FINAL_DIR,
-    ]:
-        for path in folder.glob("*.png"):
-            path.unlink()
+    # Keep notebook-generated source figures intact. Only refresh release copies.
+    for path in FINAL_DIR.glob("*.png"):
+        path.unlink()
     for stage in EDA_STAGES:
         stage_dir = FINAL_DIR / stage
         for path in stage_dir.glob("*.png"):

@@ -1,76 +1,167 @@
 # Datathon 2026 Round 1
 
-This repo is organized around one final submission decision:
+This repository contains the final working codebase for our Round 1 submission:
 
-- internal anchor: `internal_bottomup_baseline`
-- benchmark correction line: `final_shape_medium`
-- conservative meta ablation: `meta_static_nnls`
-- internal CV winner: `meta_horizon_ridge`
-- final submission model: `meta_fine_horizon_nnls`
+- Part 2: EDA notebooks and curated export pipeline
+- Part 3: baseline, benchmark, and final meta-ensemble forecasting pipeline
+- Paper: NeurIPS-style write-up and figures
 
-## Final decision
+The repository is intentionally script-first:
 
-- Canonical final submission model: `meta_fine_horizon_nnls`
-- Why: internal CV winner did not transfer well to leaderboard behavior on the long forecast horizon, while `meta_fine_horizon_nnls` stayed compliant, interpretable, and performed better in practical submission use.
-- Paper shoutout models:
-  - `internal_bottomup_baseline`
-  - `final_shape_medium`
-  - `meta_static_nnls`
-  - `meta_fine_horizon_nnls`
+- use notebooks for exploration and explanation
+- use Python scripts to rebuild the final deliverables
 
-## Canonical entrypoints
+## Quick Start
 
-- Part 2 figures: `python scripts/run_part2_pipeline.py`
-- Part 3 package build: `python scripts/run_part3_pipeline.py`
+### 1. Create an environment
 
-## Canonical artifacts
+Use `venv` + `pip`:
 
-- Canonical Kaggle upload file: `dataset/submission.csv`
-- Final submission artifact: `dataset/submissions/meta_fine_horizon_nnls.csv`
-- Internal CV winner artifact: `dataset/submissions/meta_horizon_ridge.csv`
-- Shape-medium benchmark artifact: `dataset/submissions/final_internal_bottomup_shape_medium.csv`
-- Part 2 final figures: `figures/final_figures/`
-- Final paper PDF: `paper/neurips/main.pdf`
-- Final paper source: `paper/neurips/main.tex`
-- Final interpretability notebook:
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+For Windows PowerShell:
+
+```powershell
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 2. Rebuild the final submission
+
+```bash
+python scripts/run_part3_pipeline.py
+```
+
+This writes:
+
+- canonical upload file: `dataset/submission.csv`
+- candidate submissions: `dataset/submissions/`
+- appendix/modeling figures: `figures/modeling/` and `paper/neurips/appendix/`
+
+### 3. Rebuild Part 2 final figures
+
+```bash
+python scripts/run_part2_pipeline.py
+```
+
+This executes the Part 2 notebooks and refreshes:
+
+- source figure folders under `figures/`
+- final release set under `figures/final_figures/`
+
+## Canonical Entry Points
+
+- Part 2 export pipeline: `scripts/run_part2_pipeline.py`
+- Part 3 submission pipeline: `scripts/run_part3_pipeline.py`
+- Final Kaggle interpretability notebook:
   - `notebooks/part3_modeling/03_final_meta_fine_horizon_interpretability.ipynb`
 
-## Environment
+## Current Submission Logic
 
-- If `uv` is available: `uv sync`
-- Required runtime packages are declared in `pyproject.toml`
-- Part 2 runner no longer depends on a machine-specific Python path
+The promoted final submission candidate is controlled in:
 
-## Repo map
+- `models/final_meta_regime_ensemble.py`
+
+Specifically:
+
+- `INTERNAL_CV_WINNER_NAME`
+- `FINAL_SUBMISSION_CANDIDATE_NAME`
+
+At the moment, the code promotes:
+
+- internal CV winner: `meta_horizon_ridge`
+- final submission candidate: `meta_horizon_nnls`
+
+If you want to switch the promoted Kaggle line, change `FINAL_SUBMISSION_CANDIDATE_NAME` and rerun:
+
+```bash
+python scripts/run_part3_pipeline.py
+```
+
+## Repository Layout
 
 - `dataset/`
   - official raw tables
-  - `submission.csv` canonical final upload file
-  - `submissions/` saved candidate outputs
+  - `submission.csv`: canonical upload file
+  - `submissions/`: saved candidate outputs
 - `models/`
-  - baseline, shape-medium, and final meta-ensemble code
+  - reusable forecasting code
+  - baseline, shape-medium benchmark, final meta-ensemble
 - `scripts/`
-  - canonical rebuild entrypoints
+  - reproducible rebuild entry points
 - `notebooks/`
-  - Part 1, Part 2, Part 3 narrative and analysis notebooks
-- `paper/neurips/`
-  - final write-up source and compiled PDF
+  - EDA and interpretability notebooks
+- `figures/`
+  - notebook-generated source figures and final exports
+- `paper/`
+  - final report source and compiled PDF
 
-## Final notebooks
+## Main Outputs
 
-- `notebooks/part1_mcq/01_mqa_mcq_master.ipynb`
-- `notebooks/part2_eda/01_problem_overview.ipynb`
-- `notebooks/part2_eda/02_promotion_and_demand.ipynb`
-- `notebooks/part2_eda/03_inventory_and_operations.ipynb`
-- `notebooks/part2_eda/04_customer_and_returns.ipynb`
-- `notebooks/part2_eda/05_final_figures.ipynb`
-- `notebooks/part3_modeling/01_internal_bottomup_baseline.ipynb`
-- `notebooks/part3_modeling/02_final_shape_medium_submission.ipynb`
-- `notebooks/part3_modeling/03_final_meta_fine_horizon_interpretability.ipynb`
+- Final Kaggle upload file:
+  - `dataset/submission.csv`
+- Final submission candidates:
+  - `dataset/submissions/meta_horizon_nnls.csv`
+  - `dataset/submissions/meta_fine_horizon_nnls.csv`
+  - `dataset/submissions/meta_horizon_ridge.csv`
+- Shape benchmark:
+  - `dataset/submissions/final_internal_bottomup_shape_medium.csv`
+- Part 2 release figures:
+  - `figures/final_figures/`
+- Modeling appendix figures:
+  - `figures/modeling/`
+
+## Notebook Coverage
+
+- `notebooks/part1_mcq/`
+- `notebooks/part2_eda/`
+- `notebooks/part3_modeling/`
+
+Part 2 notebooks build charts directly from the raw competition dataset.
+
+Part 3 notebooks explain:
+
+- baseline line
+- shape-medium benchmark
+- final meta-model interpretability
+
+## Validation
+
+Lightweight validation:
+
+```bash
+python -m py_compile models/*.py scripts/*.py
+```
+
+Full final submission rebuild:
+
+```bash
+python scripts/run_part3_pipeline.py
+```
+
+Full Part 2 figure rebuild:
+
+```bash
+python scripts/run_part2_pipeline.py
+```
+
+## Optional Notebook Kernel
+
+If you want a dedicated Jupyter kernel:
+
+```bash
+python -m ipykernel install --user --name datathon --display-name "Python (datathon)"
+```
 
 ## Notes
 
-- Raw dataset files under `dataset/` stay unchanged.
-- Part 2 figures are generated directly from official raw tables.
-- The final submission line is meta-ensemble based, so Part 3 scripts are the canonical way to regenerate the repo’s final `submission.csv`.
-- The final interpretability notebook rebuilds SHAP summaries directly from code and does not depend on `eda_results/`.
+- The codebase no longer depends on `eda_results/`.
+- The final interpretability notebook rebuilds SHAP summaries directly from model code.
+- `paper/neurips/main.tex` and `paper/neurips/main.pdf` are kept as the paper source of record.

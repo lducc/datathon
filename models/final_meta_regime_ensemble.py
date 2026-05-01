@@ -57,7 +57,7 @@ HORIZON_BUCKETS = ("early", "mid", "late")
 FINE_HORIZON_BUCKETS = ("early", "mid_early", "mid_late", "late")
 RATIO_REGIMES = ("normal", "sale_window", "odd_august")
 INTERNAL_CV_WINNER_NAME = "meta_horizon_ridge"
-FINAL_SUBMISSION_CANDIDATE_NAME = "meta_fine_horizon_nnls"
+FINAL_SUBMISSION_CANDIDATE_NAME = "meta_horizon_nnls"
 PAPER_SHOUTOUT_MODELS = (
     "internal_bottomup_baseline",
     "final_shape_medium",

@@ -15,7 +15,7 @@
 \usepackage{nicefrac}
 \usepackage{microtype}
 \usepackage{xcolor}
-\graphicspath{{../../figures/final_figures/}}
+\graphicspath{{../../figures/final_figures/}{../../figures/modeling/}}
 \captionsetup{font=small}
 \setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
@@ -29,41 +29,27 @@
 \maketitle
 
 \begin{abstract}
-Dữ liệu 2012--2022 cho thấy doanh nghiệp không suy giảm vì thiếu traffic, mà vì mất dần khả năng chuyển traffic thành doanh thu và gross profit sau năm 2019. Chuỗi suy giảm đi qua bốn lớp nối tiếp nhau: chất lượng cầu thương mại yếu đi, khuyến mãi giữ sản lượng nhưng phá unit economics, tồn kho sai cấu trúc kéo conversion xuống, rồi phần giá trị còn lại tiếp tục rò rỉ ở hoàn trả và loyalty. Trên cùng hệ tín hiệu đó, chúng tôi xây một mô hình dự báo Revenue theo hướng meta-ensemble NNLS theo horizon. Cách tiếp cận này giúp phần EDA và phần forecasting dùng chung một ngôn ngữ giải thích, đồng thời dẫn tới một thứ tự can thiệp rõ ràng cho traffic, markdown, tồn kho và giữ chân khách hàng.
+Dữ liệu 2012-2022 cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì ngày càng chuyển nhu cầu thành doanh thu kém hiệu quả hơn sau năm 2019. Sự suy yếu xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng, tích tụ thành áp lực tồn kho và tiếp tục làm thất thoát giá trị ở khâu hậu mãi. Từ chuỗi tín hiệu đó, chúng tôi xây dựng một mô hình dự báo Revenue theo hướng meta-ensemble NNLS theo horizon, trong đó mỗi specialist chỉ đại diện cho một cơ chế riêng của bài toán. Cách tiếp cận này cho phép phần phân tích và phần dự báo dùng chung một hệ lập luận, đồng thời dẫn tới một thứ tự hành động rõ ràng cho markdown, tồn kho và vận hành thương mại.
 \end{abstract}
 
 \section{Bối cảnh bài toán}
-Doanh thu tăng mạnh trong nửa đầu giai đoạn quan sát, đạt đỉnh vào năm 2016, rồi giảm sâu trong các năm sau đó và chỉ phục hồi nhẹ về cuối mẫu. Nếu chỉ nhìn chuỗi doanh thu, đây có thể bị diễn giải như một chu kỳ tăng trưởng đã hết đà. Tuy nhiên, dữ liệu vận hành cho thấy nguyên nhân không nằm ở sự biến mất của nhu cầu. Nhu cầu vẫn còn, nhưng hệ thương mại ngày càng chuyển hóa nó kém hiệu quả hơn.
+Doanh thu tăng mạnh trong nửa đầu giai đoạn quan sát, đạt đỉnh vào năm 2016, rồi suy giảm rõ rệt trước khi hồi phục nhẹ ở cuối mẫu. Nếu chỉ dừng ở chuỗi doanh thu, đây có thể bị hiểu như một chu kỳ tăng trưởng mất đà. Tuy nhiên, dữ liệu vận hành cho thấy vấn đề cốt lõi không nằm ở việc thị trường ngừng quan tâm, mà nằm ở việc hệ thương mại ngày càng giữ lại ít giá trị hơn trên mỗi lượt truy cập, mỗi đơn hàng và mỗi vòng quay tồn kho. Báo cáo vì vậy không chỉ mô tả xu hướng doanh thu, mà truy vết cơ chế đã tạo ra quỹ đạo suy giảm đó. 
 
 \section{Phân tích dữ liệu}
 
-\subsection{Chất lượng cầu suy giảm sau năm 2019}
- Hình~\ref{fig:demand-break} cho thấy từ 2019, lượng sessions trung bình tháng vẫn tăng, trong khi orders và conversion giảm mạnh, điều này xảy ra do chất lượng cầu thương mại suy giảm. Khi sessions liên tục tăng nhưng số đơn hàng giảm, doanh nghiệp không còn thiếu sự chú ý của thị trường, mà thứ suy yếu là khả năng chuyển lưu lượng đó thành giao dịch có giá trị.
- (vague quá, ví dụ cụ thể). "Nhiều khách hàng truy cập nhưng không tìm thấy giá trị doanh nghiệp đem lại, dẫn đến conversion thấp"
- 
- Đây là tín hiệu đầu tiên cho thấy tăng trưởng không còn bị chặn ở đầu phễu (đầu phễu là sao), mà bị chặn ở phần chuyển hóa nhu cầu thành mua hàng.
-
-Nếu cấu trúc thương mại không đổi, tăng thêm traffic sẽ tiếp tục tạo ra lượng demand đi vào nhưng không chuyển được thành doanh thu thực chất. 
+\subsection{Đứt gãy chất lượng cầu sau năm 2019}
+Hình~\ref{fig:demand-break} cho thấy lượng sessions vẫn tăng sau năm 2019, nhưng orders và conversion lại giảm mạnh. Điều này hàm ý doanh nghiệp không thiếu lưu lượng truy cập; vấn đề nằm ở chỗ ngày càng nhiều lượt truy cập không được chuyển thành giao dịch có giá trị. Khi dấu hiệu suy giảm xuất hiện trước tiên ở conversion, bài toán tăng trưởng không còn nằm ở việc mua thêm attention, mà nằm ở khả năng biến attention thành nhu cầu thương mại thực sự. Nếu cấu trúc thương mại không đổi, việc bơm thêm traffic chỉ làm phình to đầu vào của phễu mà không cải thiện lượng giá trị giữ lại ở đầu ra. 
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{01_demand_quality_break.png}
-\caption{Biểu đồ thế hiện chất lượng cầu suy giảm sau năm 2019 dù lưu lượng truy cập vẫn tăng.}
+\caption{Chất lượng cầu suy giảm sau năm 2019 dù lưu lượng truy cập vẫn tăng.}
 \label{fig:demand-break}
 \end{figure*}
 
-\subsection{Giảm giá liên tục ảnh hưởng mạnh đến economics của đơn hàng}
- Hình~\ref{fig:promo-margin} cho thấy ở cả bốn loại sản phẩm (note lại), biên lợi nhuận của đơn được giảm giá đều rơi xuống vùng âm, trong khi đơn giá niêm yết vẫn giữ biên lợi nhuận tốt. Hình~\ref{fig:promo-seasonality} cho thấy ở cấp tháng, việc giảm giá có thể nâng số đơn nhưng không tạo gross profit tương xứng.
+\subsection{Giảm giá duy trì sản lượng nhưng triệt tiêu giá trị biên}
 
- Doanh nghiệp lợi dụng việc giảm giá để bảo vệ volume ngắn hạn và bù cho sai lệch trong danh mục hàng, chứ không còn là công cụ tạo giá trị biên. 
- 
- Khi doanh nghiệp phải dựa vào giảm giá để giữ sản lượng, doanh thu duy trì ở mức độ nhất định, còn gross profit không thể tăng trưởng.
- 
-  (doanh thu danh nghĩa có thể còn giữ được, nhưng gross profit đã bắt đầu suy yếu về mặt cấu trúc.) ??? 
-
-Khuyến mãi cần quay về vai trò xử lý hàng cần xả, không thể là cơ chế tăng trưởng mặc định.
-
-Nếu doanh nghiệp tiếp tục bảo vệ volume bằng discount sâu, phần profit sẽ ngày càng có chất lượng thấp hơn và càng khó chuyển hóa thành lợi nhuận.
+Hình~\ref{fig:promo-margin} cho thấy ở cả bốn category chính, đơn có giảm giá đều làm biên lợi nhuận rơi xuống vùng âm, trong khi đơn không giảm giá vẫn giữ được biên dương rõ rệt. Hình~\ref{fig:promo-seasonality} bổ sung lớp thời gian cho cùng một kết luận: giảm giá thường xuất hiện đúng vào những tháng có nhu cầu theo mùa, giúp bảo vệ số đơn nhưng không tạo ra gross profit tương xứng. Nói cách khác, giảm giá đang được dùng để bảo vệ sản lượng ngắn hạn và sửa sai cho cơ cấu hàng hóa thay vì tạo thêm giá trị kinh tế cho mỗi đơn hàng. Khi một doanh nghiệp phải dựa vào discount sâu để giữ volume, doanh thu có thể còn đứng được trong ngắn hạn nhưng chất lượng lợi nhuận đã bắt đầu suy yếu về mặt cấu trúc. Nếu cơ chế này tiếp diễn, tăng trưởng danh nghĩa sẽ ngày càng khó chuyển thành tăng trưởng thực chất.
 
 \begin{figure*}[t]
 \centering
@@ -81,14 +67,9 @@ Nếu doanh nghiệp tiếp tục bảo vệ volume bằng discount sâu, phần
 \end{minipage}
 \end{figure*}
 
-\subsection{Tồn kho sai cấu trúc là nguyên nhân vận hành trung tâm}
-\textbf{Mô tả.} Hình~\ref{fig:root-cause} cho thấy inventory stress đã tăng từ nửa cuối năm 2018, trước khi doanh thu rơi mạnh trong năm 2019. Hình~\ref{fig:inventory-structure} cho thấy các segment lớn nhất vừa overstock vừa stockout.
+\subsection{Tồn kho lệch cấu trúc là nguyên nhân vận hành trung tâm}
+Hình~\ref{fig:root-cause} cho thấy inventory stress đã tăng mạnh từ nửa cuối năm 2018, tức là xuất hiện trước khi doanh thu rơi sâu trong năm 2019. Dấu hiệu này quan trọng vì nó dịch chuyển trọng tâm chẩn đoán từ đầu vào của phễu sang năng lực phục vụ đúng nhu cầu. Hình~\ref{fig:inventory-structure} cho thấy các segment lớn nhất đồng thời overstock và stockout, nghĩa là doanh nghiệp vừa giữ quá nhiều hàng chậm quay, vừa thiếu đúng những SKU mà khách hàng cần. Hình~\ref{fig:inventory-flow} cho thấy tình trạng này không phải cú sốc ngắn hạn: trong phần lớn chuỗi thời gian, lượng units received luôn cao hơn units sold, trong khi turnover đi xuống và stockout vẫn ở mức cao. Với bán lẻ thời trang, đây là sai lệch đặc biệt tốn kém vì hàng giữ quá một mùa bán thường phải được sửa sai bằng giảm giá sâu ở kỳ kế tiếp. Nếu cơ cấu tồn kho không được tái lập trước, mọi nỗ lực tăng traffic hay tăng cường độ khuyến mãi sẽ tiếp tục chảy vào một hệ thống đang bán sai hàng, mua sai hàng và quay vốn ngày càng chậm. 
 
-\textbf{Chẩn đoán.} Cú rơi 2019 không bắt đầu ở acquisition, mà bắt đầu khi danh mục hàng sẵn bán ngày càng lệch khỏi nhu cầu thực tế. Overstock khóa vốn vào hàng chậm quay, trong khi stockout lại làm mất đơn ở những SKU đúng nhu cầu. Với ngành thời trang, đây là một dạng sai lệch rất tốn kém vì hàng giữ quá một mùa bán thường phải sửa sai bằng markdown sâu ở kỳ kế tiếp.
-
-\textbf{Dự báo.} Nếu cơ cấu tồn kho không được sửa, conversion và turnover sẽ còn chịu áp lực trong các mùa bán tiếp theo, kể cả khi traffic và cường độ promo tăng trở lại.
-
-\textbf{Hàm ý.} Sửa inventory health phải đứng trước mọi quyết định mở rộng traffic hay tăng markdown.
 
 \begin{figure*}[t]
 \centering
@@ -106,50 +87,47 @@ Nếu doanh nghiệp tiếp tục bảo vệ volume bằng discount sâu, phần
 \end{minipage}
 \end{figure*}
 
-\subsection{Giá trị còn lại tiếp tục rò rỉ ở hoàn trả và loyalty}
-\textbf{Mô tả.} Hình~\ref{fig:refund-amount} cho thấy wrong size tạo ra lượng refund lớn nhất ở cả đơn promo và không promo. Hình~\ref{fig:retention-sensitivity} cho thấy một cú sốc churn nhỏ ở nhóm khách giá trị cao đã đủ làm topline hụt đáng kể.
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{11_inventory_flow_turnover_service_level.png}
+\caption{Dòng hàng hóa, hiệu suất quay vòng và chất lượng phục vụ theo tháng. Units received thường xuyên cao hơn units sold, trong khi turnover giảm và stockout vẫn cao, cho thấy doanh nghiệp đang vừa nhập dư vừa phục vụ thiếu ở những SKU đúng nhu cầu.}
+\label{fig:inventory-flow}
+\end{figure*}
 
-\textbf{Chẩn đoán.} Khuyến mãi có thể kéo thêm đơn đầu vào, nhưng không sửa được sai lệch về độ vừa vặn hay kỳ vọng sản phẩm. Đồng thời, doanh thu lại tập trung mạnh vào lớp khách giá trị cao, nên mọi suy giảm ở loyalty đều có tác động bất cân xứng lên doanh thu tương lai. Lớp phân tích này là nơi các thất thoát ở phía trước được kết sổ.
-
-\textbf{Dự báo.} Nếu tồn kho vẫn sai, promo vẫn bào mòn economics và trải nghiệm sau mua không được cải thiện, doanh thu tương lai sẽ tiếp tục mỏng đi qua churn của nhóm khách có giá trị cao nhất.
-
-\textbf{Hàm ý.} Size guidance, mô tả sản phẩm và cơ chế giữ chân khách giá trị cao phải được xem như bài toán doanh thu, không chỉ là bài toán dịch vụ.
+\subsection{Khuyến mãi đang phủ rộng thay vì đi đúng nhóm khách hàng}
+Hình~\ref{fig:rfm-mix} cho thấy doanh thu hiện được giữ bởi một số cụm RFM lớn như Champions, Loyal, Need Attention và At Risk, nhưng tỷ lệ đơn có khuyến mãi giữa các nhóm lại chênh lệch rất ít. Điều này cho thấy doanh nghiệp chưa thực sự phân bổ markdown theo giá trị vòng đời hay trạng thái quan hệ của khách hàng, mà đang dùng cùng một công cụ cho các nhóm có vai trò thương mại rất khác nhau. Về mặt marketing, đây là dấu hiệu của một cơ chế phủ rộng: ngân sách margin được dàn đều trên toàn phễu thay vì dồn vào những điểm mà xác suất giữ chân hay tái kích hoạt còn đủ lớn để bù chi phí.
 
 \begin{figure*}[t]
 \centering
 \begin{minipage}[t]{0.49\textwidth}
 \centering
-\includegraphics[width=\linewidth]{11_refund_amount_by_reason.png}
-\captionof{figure}{Giá trị refund theo lý do trả hàng. Wrong size là nguồn rò rỉ lớn nhất.}
-\label{fig:refund-amount}
+\includegraphics[width=\linewidth]{22_rfm_revenue_mix_promo_share.png}
+\captionof{figure}{Doanh thu tập trung ở một số phân khúc RFM lớn, nhưng promo lại phủ khá đồng đều giữa các nhóm.}
+\label{fig:rfm-mix}
 \end{minipage}\hfill
 \begin{minipage}[t]{0.49\textwidth}
 \centering
-\includegraphics[width=\linewidth]{19_retention_sensitivity_high_value.png}
-\captionof{figure}{Độ nhạy doanh thu trước cú sốc churn ở nhóm khách giá trị cao.}
-\label{fig:retention-sensitivity}
+\includegraphics[width=\linewidth]{23_rfm_repeat_delta_after_promo.png}
+\captionof{figure}{Promo không cải thiện repeat-180 ở bất kỳ phân khúc RFM nào, trong khi gross profit trên mỗi đơn đều giảm mạnh.}
+\label{fig:rfm-response}
 \end{minipage}
 \end{figure*}
 
-\section{Mô hình dự báo Revenue}
-\subsection{Mục tiêu và cấu trúc mô hình}
-Mục tiêu của phần dự báo là dự báo Revenue hằng ngày cho giai đoạn tương lai dài, trong bối cảnh regime có khả năng thay đổi theo mùa bán và theo horizon. Vì vậy, thay vì dùng một mô hình mùa vụ đơn lẻ, chúng tôi dùng một meta-ensemble NNLS theo horizon. Ở lớp base learner, mô hình kết hợp bốn góc nhìn: baseline seasonality, tín hiệu đệ quy ngắn hạn, decomposition theo orders $\times$ AOV và specialist regime cho các cửa sổ mùa vụ hay giai đoạn bất thường. Ở lớp meta, trọng số được học từ dự báo out-of-fold lịch sử và bị ràng buộc không âm để giữ mô hình dễ giải thích.
+Hình~\ref{fig:rfm-response} xác nhận rằng cấu trúc phủ rộng này không tạo ra tín hiệu giữ chân tương xứng với chi phí margin. Ở tất cả các nhóm, repeat-180 sau đơn có khuyến mãi đều thấp hơn hoặc xấp xỉ đơn không khuyến mãi, trong khi gross profit trên mỗi đơn giảm sâu. Kết quả này chưa đủ để khẳng định một causal uplift âm, nhưng đủ mạnh để bác bỏ giả thuyết rằng markdown hiện tại đang mua được loyalty với quy mô đáng kể. Hàm ý điều hành vì vậy phải tách theo nhóm. Champions và Loyal nên được giữ bằng CRM, assortment và trải nghiệm thay vì discount thường xuyên. At Risk và Need Attention phù hợp hơn với các chiến dịch win-back có điều kiện, thời hạn ngắn và quota nhỏ. New và Potential cần onboarding, fit guidance và nội dung sản phẩm tốt hơn trước khi bước vào các vòng giảm giá sâu. Cách tiếp cận này đưa khuyến mãi trở lại vai trò công cụ chiến thuật, thay vì để nó trở thành cơ chế mặc định cho toàn bộ nhu cầu.
 
-\subsection{Lý do lựa chọn}
-Mô hình này phù hợp với câu chuyện dữ liệu hơn một mô hình thuần thống kê vì các nhóm biến mạnh nhất vẫn là những tín hiệu đã được xác nhận ở phần EDA: chất lượng traffic, cường độ markdown, stress tồn kho, các tín hiệu cuối phễu và các regime theo horizon. Forecast Revenue vì vậy không đứng ngoài phần phân tích; nó là phần kéo dài tự nhiên của cùng một lập luận kinh doanh.
+\section{Mô hình dự báo Revenue}
+\subsection{Phương pháp và tiêu chuẩn lựa chọn}
+Mục tiêu của phần dự báo là dự báo Revenue hằng ngày trên một horizon dài, nơi cấu trúc sai số thay đổi theo vị trí của kỳ dự báo. Đoạn gần còn chịu chi phối mạnh bởi quán tính doanh thu ngắn hạn, trong khi đoạn xa đòi hỏi một biểu diễn ổn định hơn để hạn chế drift. Vì vậy, final line của chúng tôi là \texttt{meta\_horizon\_nnls}, một meta-ensemble với trọng số không âm thay đổi theo ba bucket early, mid và late. Ở lớp base learner, mô hình kết hợp bốn specialist bổ sung cho nhau: baseline seasonality để giữ mức thương mại dài hạn, recursive revenue head để bám nhịp doanh thu gần, decomposition theo orders $\times$ AOV để ổn định phần xa của horizon, và revenue regime specialist để hấp thụ các đứt gãy theo giai đoạn. Ở lớp meta, trọng số được học trên dự báo out-of-fold lịch sử thay vì hiệu chỉnh trực tiếp lên forecast cuối, nhờ đó cấu trúc dự báo vẫn minh bạch và ít phụ thuộc vào một head duy nhất.
+
+Tập candidate được xây dựng hoàn toàn từ dữ liệu chính thức và so sánh trên rolling out-of-fold objective để kiểm tra độ bền theo thời gian. Cùng lúc, chúng tôi đối chiếu các line này với kết quả public nhằm loại bỏ những cấu hình quá tự do nhưng thiếu ổn định khi triển khai thực tế. Trong nhóm đó, \texttt{meta\_horizon\_ridge} đạt internal objective tốt nhất, còn \texttt{meta\_horizon\_nnls} là line public mạnh nhất và bền hơn khi dùng làm final submission. Tiêu chí chọn line NNLS vì vậy không nằm ở việc nó có internal score đẹp nhất, mà ở chỗ nó giữ được tính compliant, kiểm soát được độ phức tạp của meta-layer và cho tín hiệu public tốt hơn trên chính horizon của bài thi.
+
+\subsection{Kết quả và diễn giải mô hình}
+Bản chất của \texttt{meta\_horizon\_nnls} nằm ở cách nó đổi trọng số theo vị trí của horizon. Ở đoạn early, mô hình đặt khoảng 76.5\% trọng số lên recursive revenue head và 23.5\% lên component head, cho thấy phần gần của forecast chủ yếu vẫn do quán tính thương mại ngắn hạn dẫn dắt. Sang đoạn mid và late, trọng số dịch dần về phía component head, trong khi recursive level vẫn giữ vai trò nền. Điều đó có nghĩa là khi horizon kéo dài, mô hình bắt đầu tin nhiều hơn vào cấu trúc orders $\times$ AOV thay vì chỉ kéo tiếp nhịp doanh thu gần.
+
+Kết quả SHAP củng cố đúng cách đọc đó. Ở lớp recursive, các biến quan trọng nhất là \texttt{rev\_lag\_1}, \texttt{rev\_lag\_7}, \texttt{rev\_ema\_3}, \texttt{days\_to\_month\_end}, \texttt{day\_of\_month} và \texttt{recent\_user\_growth}. Điều này cho thấy dự báo Revenue vẫn bị chi phối mạnh bởi nhịp mua gần, hiệu ứng cuối tháng và tốc độ mở rộng khách hàng mới. Ở lớp regime, các biến nổi bật nhất là \texttt{year}, \texttt{recent\_user\_growth}, \texttt{is\_post\_2019}, \texttt{day\_of\_week}, \texttt{event\_service\_interact} và \texttt{is\_odd\_year\_august}. Nói cách khác, khi đi xa hơn khỏi phần quán tính ngắn hạn, forecast bắt đầu phản ánh những thay đổi theo giai đoạn của doanh nghiệp, đặc biệt là cú dịch chuyển sau năm 2019, nhịp sự kiện thương mại và các anomaly theo mùa. Hàm ý điều hành từ mô hình vì vậy nhất quán với Part 2: doanh thu không nên được điều hành như một chuỗi thuần mùa vụ, mà như kết quả của ba lớp lực đồng thời gồm nhịp mua gần, timing thương mại và chất lượng thực thi theo regime. Toàn bộ bảng SHAP, bảng trọng số meta và thống kê ổn định theo fold được xuất riêng trong appendix để phục vụ diễn giải chi tiết hơn.
 
 \section{Hàm ý điều hành}
-\textbf{Thứ nhất,} doanh nghiệp cần chấp nhận giảm một phần volume kém chất lượng để phục hồi gross profit. Hình~\ref{fig:action-tradeoff} cho thấy giữ mọi đơn hàng bằng markdown sâu chỉ trì hoãn cảm giác suy giảm, trong khi tiếp tục làm mỏng gross profit và khóa thêm vốn trong tồn kho chậm quay.
-
-\textbf{Thứ hai,} thứ tự hành động phải đi đúng theo thứ tự thất thoát giá trị đã được chỉ ra ở phần trên:
-\begin{itemize}
-    \item siết discount sâu và trả markdown về đúng vai trò xử lý hàng cần xả;
-    \item làm sạch core inventory ở các segment vừa overstock vừa stockout;
-    \item giảm ma sát ở size guidance, mô tả sản phẩm và checkout;
-    \item chỉ tái phân bổ traffic sau khi ba lớp trên đã được sửa.
-\end{itemize}
-
-Nếu đảo ngược thứ tự này, doanh nghiệp sẽ tiếp tục mua thêm demand cho một hệ thống vẫn chưa sửa được các điểm thất thoát cốt lõi.
+Hình~\ref{fig:action-tradeoff} cho thấy con đường hợp lý không phải là giữ mọi đơn hàng bằng mọi giá, mà là chấp nhận cắt phần volume kém chất lượng để phục hồi khả năng sinh doanh thu lành mạnh. Thứ tự hành động vì vậy phải đi đúng theo thứ tự thất thoát giá trị đã được chỉ ra trong dữ liệu. Trước hết, doanh nghiệp cần siết discount sâu và trả giảm giá về đúng vai trò xử lý hàng cần xả. Tiếp theo, cần làm sạch core inventory ở các segment vừa overstock vừa stockout để khôi phục conversion và tốc độ quay vốn. Sau đó mới xử lý ma sát ở size guidance, mô tả sản phẩm và checkout nhằm giảm thất thoát hậu mãi. Chỉ khi ba lớp trên được sửa, việc tái phân bổ traffic mới có cơ sở tạo ra tăng trưởng có chất lượng. Nếu đảo ngược thứ tự này, doanh nghiệp sẽ tiếp tục mua thêm demand cho một hệ thống vẫn chưa sửa được các điểm mất giá trị cốt lõi.
 
 \begin{figure*}[t]
 \centering
@@ -159,6 +137,33 @@ Nếu đảo ngược thứ tự này, doanh nghiệp sẽ tiếp tục mua thê
 \end{figure*}
 
 \section{Kết luận}
-Bộ dữ liệu này cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì liên tục đánh mất giá trị trong quá trình chuyển nhu cầu thành doanh thu và gross profit. Điểm gãy xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng, tích tụ thành stress tồn kho, rồi tiếp tục làm mỏng loyalty và giá trị hậu mãi. Khi mô hình dự báo Revenue được xây trên đúng các driver đó, forecasting trở thành phần kiểm định cuối cùng của toàn bộ lập luận kinh doanh. Con đường phục hồi vì vậy không nằm ở việc mua thêm tăng trưởng bằng traffic hay markdown, mà nằm ở việc sửa lại cơ chế chuyển hóa giá trị ở từng lớp của hệ thương mại.
+Bộ dữ liệu này cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì liên tục làm rò rỉ giá trị trong quá trình biến nhu cầu thành doanh thu thực chất. Điểm gãy xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng, tích tụ thành áp lực tồn kho và tiếp tục lộ rõ ở khâu hậu mãi. Khi mô hình dự báo Revenue được xây trên đúng các driver đó, forecasting trở thành bước kiểm định cuối cùng cho toàn bộ lập luận kinh doanh. Con đường phục hồi vì vậy không nằm ở việc mua thêm tăng trưởng bằng traffic hay discount sâu, mà nằm ở việc sửa lại cơ chế chuyển hóa giá trị ở từng lớp của hệ thương mại.
+
+\appendix
+\section{Phụ lục diễn giải mô hình}
+Các bảng SHAP và thống kê ổn định theo fold được xuất tại thư mục appendix của repo. Trong bản phụ lục trực quan, chúng tôi giữ ba nhóm hình chính: phân bổ trọng số theo horizon, tổng hợp SHAP cho revenue specialist và độ ổn định của feature importance theo fold.
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{21_meta_horizon_weight_heatmap.png}
+\captionof{figure}{Phân bổ trọng số của meta-layer theo từng bucket horizon.}
+\label{fig:appendix-weights}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{22_meta_horizon_shap_summary.png}
+\captionof{figure}{Tổng hợp SHAP của các revenue specialist trong final line.}
+\label{fig:appendix-shap}
+\end{minipage}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{23_meta_horizon_feature_stability.png}
+\caption{Độ ổn định của feature importance theo từng fold thời gian.}
+\label{fig:appendix-stability}
+\end{figure*}
 
 \end{document}
