@@ -1,6 +1,0 @@
---- ĐỊNH HƯỚNG: STARS (MŨI NHỌN - ĐẨY MẠNH) ---
-
-CATEGORY-SEGMENT                    | AVG LTV      | VOLUME     | PROFIT    
---------------------------------------------------------------------------------
-Streetwear - Balanced               | $39,794      | 421,216    | $390,693,652
-Outdoor - Activewear                | $39,193      | 935,281    | $218,644,758

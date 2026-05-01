@@ -1,0 +1,164 @@
+\documentclass{article}
+\usepackage[main]{neurips_2025}
+
+\usepackage[T5]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,vietnamese]{babel}
+\usepackage{vntex}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\graphicspath{{../../figures/final_figures/}}
+\captionsetup{font=small}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+
+\title{Truy vết thất thoát giá trị và dự báo Revenue trong bán lẻ thời trang}
+
+\author{Nhóm Datathon 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Dữ liệu 2012--2022 cho thấy doanh nghiệp không suy giảm vì thiếu traffic, mà vì mất dần khả năng chuyển traffic thành doanh thu và gross profit sau năm 2019. Chuỗi suy giảm đi qua bốn lớp nối tiếp nhau: chất lượng cầu thương mại yếu đi, khuyến mãi giữ sản lượng nhưng phá unit economics, tồn kho sai cấu trúc kéo conversion xuống, rồi phần giá trị còn lại tiếp tục rò rỉ ở hoàn trả và loyalty. Trên cùng hệ tín hiệu đó, chúng tôi xây một mô hình dự báo Revenue theo hướng meta-ensemble NNLS theo horizon. Cách tiếp cận này giúp phần EDA và phần forecasting dùng chung một ngôn ngữ giải thích, đồng thời dẫn tới một thứ tự can thiệp rõ ràng cho traffic, markdown, tồn kho và giữ chân khách hàng.
+\end{abstract}
+
+\section{Bối cảnh bài toán}
+Doanh thu tăng mạnh trong nửa đầu giai đoạn quan sát, đạt đỉnh vào năm 2016, rồi giảm sâu trong các năm sau đó và chỉ phục hồi nhẹ về cuối mẫu. Nếu chỉ nhìn chuỗi doanh thu, đây có thể bị diễn giải như một chu kỳ tăng trưởng đã hết đà. Tuy nhiên, dữ liệu vận hành cho thấy nguyên nhân không nằm ở sự biến mất của nhu cầu. Nhu cầu vẫn còn, nhưng hệ thương mại ngày càng chuyển hóa nó kém hiệu quả hơn.
+
+\section{Phân tích dữ liệu}
+
+\subsection{Chất lượng cầu suy giảm sau năm 2019}
+ Hình~\ref{fig:demand-break} cho thấy từ 2019, lượng sessions trung bình tháng vẫn tăng, trong khi orders và conversion giảm mạnh, điều này xảy ra do chất lượng cầu thương mại suy giảm. Khi sessions liên tục tăng nhưng số đơn hàng giảm, doanh nghiệp không còn thiếu sự chú ý của thị trường, mà thứ suy yếu là khả năng chuyển lưu lượng đó thành giao dịch có giá trị.
+ (vague quá, ví dụ cụ thể). "Nhiều khách hàng truy cập nhưng không tìm thấy giá trị doanh nghiệp đem lại, dẫn đến conversion thấp"
+ 
+ Đây là tín hiệu đầu tiên cho thấy tăng trưởng không còn bị chặn ở đầu phễu (đầu phễu là sao), mà bị chặn ở phần chuyển hóa nhu cầu thành mua hàng.
+
+Nếu cấu trúc thương mại không đổi, tăng thêm traffic sẽ tiếp tục tạo ra lượng demand đi vào nhưng không chuyển được thành doanh thu thực chất. 
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{01_demand_quality_break.png}
+\caption{Biểu đồ thế hiện chất lượng cầu suy giảm sau năm 2019 dù lưu lượng truy cập vẫn tăng.}
+\label{fig:demand-break}
+\end{figure*}
+
+\subsection{Giảm giá liên tục ảnh hưởng mạnh đến economics của đơn hàng}
+ Hình~\ref{fig:promo-margin} cho thấy ở cả bốn loại sản phẩm (note lại), biên lợi nhuận của đơn được giảm giá đều rơi xuống vùng âm, trong khi đơn giá niêm yết vẫn giữ biên lợi nhuận tốt. Hình~\ref{fig:promo-seasonality} cho thấy ở cấp tháng, việc giảm giá có thể nâng số đơn nhưng không tạo gross profit tương xứng.
+
+ Doanh nghiệp lợi dụng việc giảm giá để bảo vệ volume ngắn hạn và bù cho sai lệch trong danh mục hàng, chứ không còn là công cụ tạo giá trị biên. 
+ 
+ Khi doanh nghiệp phải dựa vào giảm giá để giữ sản lượng, doanh thu duy trì ở mức độ nhất định, còn gross profit không thể tăng trưởng.
+ 
+  (doanh thu danh nghĩa có thể còn giữ được, nhưng gross profit đã bắt đầu suy yếu về mặt cấu trúc.) ??? 
+
+Khuyến mãi cần quay về vai trò xử lý hàng cần xả, không thể là cơ chế tăng trưởng mặc định.
+
+Nếu doanh nghiệp tiếp tục bảo vệ volume bằng discount sâu, phần profit sẽ ngày càng có chất lượng thấp hơn và càng khó chuyển hóa thành lợi nhuận.
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{02_margin_by_category.png}
+\captionof{figure}{Margin của đơn giảm giá và không giảm giá theo category.}
+\label{fig:promo-margin}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{04_promo_no_incremental_gp.png}
+\captionof{figure}{Khuyến mãi đi cùng mùa bán mạnh nhưng không tạo gross profit tương xứng.}
+\label{fig:promo-seasonality}
+\end{minipage}
+\end{figure*}
+
+\subsection{Tồn kho sai cấu trúc là nguyên nhân vận hành trung tâm}
+\textbf{Mô tả.} Hình~\ref{fig:root-cause} cho thấy inventory stress đã tăng từ nửa cuối năm 2018, trước khi doanh thu rơi mạnh trong năm 2019. Hình~\ref{fig:inventory-structure} cho thấy các segment lớn nhất vừa overstock vừa stockout.
+
+\textbf{Chẩn đoán.} Cú rơi 2019 không bắt đầu ở acquisition, mà bắt đầu khi danh mục hàng sẵn bán ngày càng lệch khỏi nhu cầu thực tế. Overstock khóa vốn vào hàng chậm quay, trong khi stockout lại làm mất đơn ở những SKU đúng nhu cầu. Với ngành thời trang, đây là một dạng sai lệch rất tốn kém vì hàng giữ quá một mùa bán thường phải sửa sai bằng markdown sâu ở kỳ kế tiếp.
+
+\textbf{Dự báo.} Nếu cơ cấu tồn kho không được sửa, conversion và turnover sẽ còn chịu áp lực trong các mùa bán tiếp theo, kể cả khi traffic và cường độ promo tăng trở lại.
+
+\textbf{Hàm ý.} Sửa inventory health phải đứng trước mọi quyết định mở rộng traffic hay tăng markdown.
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{05_root_cause_2019_inventory_stress.png}
+\captionof{figure}{Inventory stress tăng từ 2018 H2 trước khi doanh thu giảm mạnh trong năm 2019.}
+\label{fig:root-cause}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{06_inventory_stress_matrix.png}
+\captionof{figure}{Các segment lớn nhất đồng thời overstock và stockout, cho thấy sai lệch ở cơ cấu tồn kho.}
+\label{fig:inventory-structure}
+\end{minipage}
+\end{figure*}
+
+\subsection{Giá trị còn lại tiếp tục rò rỉ ở hoàn trả và loyalty}
+\textbf{Mô tả.} Hình~\ref{fig:refund-amount} cho thấy wrong size tạo ra lượng refund lớn nhất ở cả đơn promo và không promo. Hình~\ref{fig:retention-sensitivity} cho thấy một cú sốc churn nhỏ ở nhóm khách giá trị cao đã đủ làm topline hụt đáng kể.
+
+\textbf{Chẩn đoán.} Khuyến mãi có thể kéo thêm đơn đầu vào, nhưng không sửa được sai lệch về độ vừa vặn hay kỳ vọng sản phẩm. Đồng thời, doanh thu lại tập trung mạnh vào lớp khách giá trị cao, nên mọi suy giảm ở loyalty đều có tác động bất cân xứng lên doanh thu tương lai. Lớp phân tích này là nơi các thất thoát ở phía trước được kết sổ.
+
+\textbf{Dự báo.} Nếu tồn kho vẫn sai, promo vẫn bào mòn economics và trải nghiệm sau mua không được cải thiện, doanh thu tương lai sẽ tiếp tục mỏng đi qua churn của nhóm khách có giá trị cao nhất.
+
+\textbf{Hàm ý.} Size guidance, mô tả sản phẩm và cơ chế giữ chân khách giá trị cao phải được xem như bài toán doanh thu, không chỉ là bài toán dịch vụ.
+
+\begin{figure*}[t]
+\centering
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{11_refund_amount_by_reason.png}
+\captionof{figure}{Giá trị refund theo lý do trả hàng. Wrong size là nguồn rò rỉ lớn nhất.}
+\label{fig:refund-amount}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.49\textwidth}
+\centering
+\includegraphics[width=\linewidth]{19_retention_sensitivity_high_value.png}
+\captionof{figure}{Độ nhạy doanh thu trước cú sốc churn ở nhóm khách giá trị cao.}
+\label{fig:retention-sensitivity}
+\end{minipage}
+\end{figure*}
+
+\section{Mô hình dự báo Revenue}
+\subsection{Mục tiêu và cấu trúc mô hình}
+Mục tiêu của phần dự báo là dự báo Revenue hằng ngày cho giai đoạn tương lai dài, trong bối cảnh regime có khả năng thay đổi theo mùa bán và theo horizon. Vì vậy, thay vì dùng một mô hình mùa vụ đơn lẻ, chúng tôi dùng một meta-ensemble NNLS theo horizon. Ở lớp base learner, mô hình kết hợp bốn góc nhìn: baseline seasonality, tín hiệu đệ quy ngắn hạn, decomposition theo orders $\times$ AOV và specialist regime cho các cửa sổ mùa vụ hay giai đoạn bất thường. Ở lớp meta, trọng số được học từ dự báo out-of-fold lịch sử và bị ràng buộc không âm để giữ mô hình dễ giải thích.
+
+\subsection{Lý do lựa chọn}
+Mô hình này phù hợp với câu chuyện dữ liệu hơn một mô hình thuần thống kê vì các nhóm biến mạnh nhất vẫn là những tín hiệu đã được xác nhận ở phần EDA: chất lượng traffic, cường độ markdown, stress tồn kho, các tín hiệu cuối phễu và các regime theo horizon. Forecast Revenue vì vậy không đứng ngoài phần phân tích; nó là phần kéo dài tự nhiên của cùng một lập luận kinh doanh.
+
+\section{Hàm ý điều hành}
+\textbf{Thứ nhất,} doanh nghiệp cần chấp nhận giảm một phần volume kém chất lượng để phục hồi gross profit. Hình~\ref{fig:action-tradeoff} cho thấy giữ mọi đơn hàng bằng markdown sâu chỉ trì hoãn cảm giác suy giảm, trong khi tiếp tục làm mỏng gross profit và khóa thêm vốn trong tồn kho chậm quay.
+
+\textbf{Thứ hai,} thứ tự hành động phải đi đúng theo thứ tự thất thoát giá trị đã được chỉ ra ở phần trên:
+\begin{itemize}
+    \item siết discount sâu và trả markdown về đúng vai trò xử lý hàng cần xả;
+    \item làm sạch core inventory ở các segment vừa overstock vừa stockout;
+    \item giảm ma sát ở size guidance, mô tả sản phẩm và checkout;
+    \item chỉ tái phân bổ traffic sau khi ba lớp trên đã được sửa.
+\end{itemize}
+
+Nếu đảo ngược thứ tự này, doanh nghiệp sẽ tiếp tục mua thêm demand cho một hệ thống vẫn chưa sửa được các điểm thất thoát cốt lõi.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{20_action_tradeoff_scenarios.png}
+\caption{Trade-off giữa doanh thu và gross profit dưới các kịch bản hành động. Kịch bản hợp lý không phải là giữ mọi đơn hàng bằng mọi giá, mà là chấp nhận cắt phần volume phá giá trị để phục hồi gross profit và vòng quay vốn.}
+\label{fig:action-tradeoff}
+\end{figure*}
+
+\section{Kết luận}
+Bộ dữ liệu này cho thấy doanh nghiệp không suy giảm vì thiếu nhu cầu tuyệt đối, mà vì liên tục đánh mất giá trị trong quá trình chuyển nhu cầu thành doanh thu và gross profit. Điểm gãy xuất hiện trước hết ở conversion, sau đó lan sang economics của đơn hàng, tích tụ thành stress tồn kho, rồi tiếp tục làm mỏng loyalty và giá trị hậu mãi. Khi mô hình dự báo Revenue được xây trên đúng các driver đó, forecasting trở thành phần kiểm định cuối cùng của toàn bộ lập luận kinh doanh. Con đường phục hồi vì vậy không nằm ở việc mua thêm tăng trưởng bằng traffic hay markdown, mà nằm ở việc sửa lại cơ chế chuyển hóa giá trị ở từng lớp của hệ thương mại.
+
+\end{document}

@@ -1,7 +1,0 @@
---- ĐỊNH HƯỚNG: CASH COWS (VẮT SỮA CƠ BẢN) ---
-
-CATEGORY-SEGMENT                    | AVG LTV      | VOLUME     | PROFIT    
---------------------------------------------------------------------------------
-Streetwear - Everyday               | $36,768      | 743,849    | $482,436,233
-Streetwear - Performance            | $37,892      | 396,226    | $158,271,189
-GenZ - Trendy                       | $33,230      | 151,762    | $46,111,071
